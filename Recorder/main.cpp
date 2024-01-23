@@ -1,63 +1,45 @@
 #include <Windows.h>
-#include <mmdeviceapi.h>
-#include <Audioclient.h>
-#include <Audiopolicy.h>
 #include <iostream>
-#include <fstream>
+#include "recorder.h"
+#include <thread>
+#include <chrono>
+#include <string>
 
-int main() 
+void stop(Recorder& rec)
 {
-    // Initialize COM library
-    CoInitialize(nullptr);
-    IMMDeviceEnumerator* pEnumerator = nullptr;
-    CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pEnumerator);
-    IMMDevice* pDevice = nullptr;
-    pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
-    IAudioClient* pAudioClient = nullptr;
-    pDevice->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, (void**)&pAudioClient);
-    WAVEFORMATEX* pWaveFormat;
-    pAudioClient->GetMixFormat(&pWaveFormat);
-    pAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 0, 0, pWaveFormat, nullptr);
-    // Get the buffer size
-    UINT32 bufferSize;
-    pAudioClient->GetBufferSize(&bufferSize);
-    // Get the capture client
-    IAudioCaptureClient* pCaptureClient = nullptr;
-    pAudioClient->GetService(__uuidof(IAudioCaptureClient), (void**)&pCaptureClient);
-    // Open a file to write captured audio
-    std::ofstream outputFile("audio.wav", std::ios::binary);
-    // Start capturing audio
-    pAudioClient->Start();
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    rec.stopRecording();
+}
 
+int main()
+{
+    //initialize COM on current thread
+    HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    if (FAILED(hr))
+        std::cout << "COM initialization failed with error " << hr << "\n";
 
-    UINT32 numFramesAvailable;
-    BYTE* pData;
-    DWORD flags;
+    //create recorder
+    Recorder recorder;
 
-    while (true) {
-        // Wait for the next available capture frame
-        pCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, nullptr, nullptr);
-        // Write captured audio to the file
-        if (numFramesAvailable > 0) {
-            outputFile.write(reinterpret_cast<const char*>(pData), numFramesAvailable * pWaveFormat->nBlockAlign);
-            pCaptureClient->ReleaseBuffer(numFramesAvailable);
-        }
+    int i = 0;
+    while (i++ < 2)
+    {
+        //create the file
+        MMIOINFO mi = { 0 };
+        WCHAR path[18];
+        swprintf(path, sizeof(path) / sizeof(path[0]), L"audio/audio%d.wav", i);
+        HMMIO file = mmioOpenW(path, &mi, MMIO_WRITE | MMIO_CREATE);
+        
+        std::thread stopThread(stop, std::ref(recorder));
 
-        // Check for the end of audio stream
-        if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
-            break;
-        }
+        hr = recorder.startRecording(file);
+        if (FAILED(hr))
+            std::cout << "recording failed with error " << hr << "\n";
+        stopThread.join();
+    
+        mmioClose(file, 0);
     }
 
-    // Stop capturing audio
-    pAudioClient->Stop();
-
-    // Clean up
-    outputFile.close();
-    pCaptureClient->Release();
-    CoTaskMemFree(pWaveFormat);
-    pAudioClient->Release();
-    pDevice->Release();
-    pEnumerator->Release();
     CoUninitialize();
+    return 0;
 }

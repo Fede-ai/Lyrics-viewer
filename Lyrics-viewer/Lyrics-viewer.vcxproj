@@ -132,9 +132,11 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="overlay.cpp" />
+    <ClCompile Include="roundedrect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="overlay.h" />
+    <ClInclude Include="roundedrect.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

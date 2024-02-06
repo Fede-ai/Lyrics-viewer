@@ -2,9 +2,19 @@
 #include <dwmapi.h>
 #include <Windows.h>
 
+Overlay::Overlay()
+	:
+	back(sf::Vector2f(400, 240), 40)
+{
+	back.setFillColor(sf::Color(200, 200, 200, 100));
+}
+
 int Overlay::run()
 {
-	w.create(sf::VideoMode(400, 250), "Lyrics-viewer", sf::Style::None);
+	sf::ContextSettings set;
+	set.antialiasingLevel = 8;
+	w.create(sf::VideoMode(400, 240), "Lyrics-viewer", sf::Style::None, set);
+	w.setView(sf::View(sf::Vector2f(200, 120), sf::Vector2f(400, 240)));
 	w.setFramerateLimit(10);
 
 	//	window without titlebar (with: w.clear())
@@ -28,10 +38,16 @@ int Overlay::run()
 				w.close();
 		}
 
-		w.clear(sf::Color(0, 200, 200, 100));
-
+		//w.clear(sf::Color(0, 200, 200, 100));
+		w.clear(sf::Color::Transparent);
+		draw();
 		w.display();
 	}
 
 	return 0;
+}
+
+void Overlay::draw()
+{
+	w.draw(back);
 }

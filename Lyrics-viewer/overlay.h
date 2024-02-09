@@ -15,5 +15,5 @@ private:
 	sf::Vector2i lastPos; 
 	sf::Vector2u wSize = sf::Vector2u(400, 240);
 	RoundedRect bg, titleBg;
-	bool isMoving = false;
+	bool isMoving = false, isHidden = false;
 };

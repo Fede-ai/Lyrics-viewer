@@ -17,7 +17,7 @@ int Overlay::run()
 	set.antialiasingLevel = 8;
 	w.create(sf::VideoMode(wSize.x, wSize.y), "Lyrics-viewer", sf::Style::None, set);
 	w.setView(sf::View(sf::Vector2f(200, 120), sf::Vector2f(400, 240)));
-	w.setFramerateLimit(10);
+	w.setFramerateLimit(20);
 	lastPos = sf::Mouse::getPosition();
 
 	//	window without titlebar (with: w.clear())
@@ -42,13 +42,11 @@ int Overlay::run()
 				if (titleBg.v.getBounds().contains(sf::Vector2f(sf::Mouse::getPosition(w))))
 				{
 					isMoving = true;
-					w.setFramerateLimit(30);
 				}
 			}
 			else if (e.type == sf::Event::MouseButtonReleased && e.mouseButton.button == sf::Mouse::Left)
 			{
 				isMoving = false;
-				w.setFramerateLimit(10);
 			}			
 			else if (e.type == sf::Event::Closed)
 				w.close();
@@ -73,16 +71,20 @@ void Overlay::update()
 		if (w.getPosition().x < pos.x && pos.x < w.getPosition().x + wSize.x &&
 			w.getPosition().y + 50 < pos.y && pos.y < w.getPosition().y + wSize.y)
 		{
-			if (w.getSize().y > 50)
+			if (isHidden == false)
 			{
-				w.setSize(sf::Vector2u(wSize.x, 50));
+				bg.setSize(sf::Vector2f(wSize.x, 50));
 				draw();
+				w.setSize(sf::Vector2u(wSize.x, 50));
+				isHidden = true;
 			}
 		}
-		else if (w.getSize().y < wSize.y)
+		else if (isHidden == true)
 		{
 			w.setSize(sf::Vector2u(wSize.x, wSize.y));
+			bg.setSize(sf::Vector2f(wSize.x, wSize.y));
 			draw();
+			isHidden = false;
 		}
 	}
 
@@ -94,7 +96,6 @@ void Overlay::draw()
 	w.setView(sf::View(sf::FloatRect(sf::Vector2f(0, 0), sf::Vector2f(w.getSize()))));
 	w.clear(sf::Color::Transparent);
 
-	bg.setSize(sf::Vector2f(w.getSize()));
 	bg.draw(w);
 	titleBg.draw(w);
 	

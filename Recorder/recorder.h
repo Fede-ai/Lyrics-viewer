@@ -18,13 +18,13 @@
 class Recorder
 {
 public:
-    HRESULT startRecording(HMMIO hFile);
+    void startRecording(LPWSTR path);
     void stopRecording();
 
 private:
     bool isRecording = false;
     int callCount = 0;
-
+    HRESULT record(HMMIO hFile);
     HRESULT writeWaveHeader(HMMIO hFile, LPCWAVEFORMATEX pwfx, MMCKINFO* pckRIFF, MMCKINFO* pckData);
     HRESULT finishWaveFile(HMMIO hFile, MMCKINFO* pckRIFF, MMCKINFO* pckData);
     HRESULT copyData(BYTE* pData, UINT32 NumFrames, WAVEFORMATEX* pwfx, HMMIO hFile);

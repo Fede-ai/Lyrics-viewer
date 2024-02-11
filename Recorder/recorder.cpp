@@ -1,11 +1,35 @@
 #include "recorder.h"
+#include <thread>
+#include <stralign.h>
 
 const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
 const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
 const IID IID_IAudioClient = __uuidof(IAudioClient);
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 
-HRESULT Recorder::startRecording(HMMIO hFile)
+void Recorder::startRecording(LPWSTR path)
+{
+    //initialize COM on current thread
+    HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    if (FAILED(hr))
+        std::cout << "COM initialization failed with error " << hr << "\n";
+
+    MMIOINFO mi = { 0 };
+    HMMIO file = mmioOpenW(path, &mi, MMIO_WRITE | MMIO_CREATE);
+
+    record(file);
+
+    mmioClose(file, 0);
+
+    CoUninitialize();
+}
+
+void Recorder::stopRecording()
+{
+    isRecording = false;
+}
+
+HRESULT Recorder::record(HMMIO hFile)
 {
     HRESULT hr;
     REFERENCE_TIME hnsRequestedDuration = REFTIMES_PER_SEC;
@@ -28,27 +52,27 @@ HRESULT Recorder::startRecording(HMMIO hFile)
     hr = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
     EXIT_ON_ERROR(hr)
 
-    hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
+        hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
     EXIT_ON_ERROR(hr)
 
-    hr = pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void**)&pAudioClient);
+        hr = pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void**)&pAudioClient);
     EXIT_ON_ERROR(hr)
 
-    //cbSize 22, nAvgBytesPerSec 1411200, nBlockAlign 32, nChannels 8, nSamplesPerSec 44100, wBitsPerSample 32, wFormatTag 65534,
-    hr = pAudioClient->GetMixFormat(&pwfx);
+        //cbSize 22, nAvgBytesPerSec 1411200, nBlockAlign 32, nChannels 8, nSamplesPerSec 44100, wBitsPerSample 32, wFormatTag 65534,
+        hr = pAudioClient->GetMixFormat(&pwfx);
     EXIT_ON_ERROR(hr)
 
-    hr = pAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK, hnsRequestedDuration, 0, pwfx, NULL);
+        hr = pAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK, hnsRequestedDuration, 0, pwfx, NULL);
     EXIT_ON_ERROR(hr)
 
-    // Get the size of the allocated buffer.
-    hr = pAudioClient->GetBufferSize(&bufferFrameCount);
+        // Get the size of the allocated buffer.
+        hr = pAudioClient->GetBufferSize(&bufferFrameCount);
     EXIT_ON_ERROR(hr)
 
-    hr = pAudioClient->GetService(IID_IAudioCaptureClient, (void**)&pCaptureClient);
+        hr = pAudioClient->GetService(IID_IAudioCaptureClient, (void**)&pCaptureClient);
     EXIT_ON_ERROR(hr)
 
-    hr = writeWaveHeader((HMMIO)hFile, pwfx, &ckRIFF, &ckData);
+        hr = writeWaveHeader((HMMIO)hFile, pwfx, &ckRIFF, &ckData);
     if (FAILED(hr))
         return hr; // writeWaveHeader does its own logging
 
@@ -58,7 +82,7 @@ HRESULT Recorder::startRecording(HMMIO hFile)
     hr = pAudioClient->Start();  // Start recording.
     EXIT_ON_ERROR(hr)
 
-    isRecording = true, callCount = 0;
+    callCount = 0, isRecording = true;
     // Each loop fills about half of the shared buffer.
     while (isRecording)
     {
@@ -68,47 +92,42 @@ HRESULT Recorder::startRecording(HMMIO hFile)
         hr = pCaptureClient->GetNextPacketSize(&packetLength);
         EXIT_ON_ERROR(hr)
 
-        while (packetLength != 0)
-        {
-            // Get the available data in the shared buffer.
-            hr = pCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, NULL, NULL);
-            EXIT_ON_ERROR(hr)
+            while (packetLength != 0)
+            {
+                // Get the available data in the shared buffer.
+                hr = pCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, NULL, NULL);
+                EXIT_ON_ERROR(hr)
 
-            if (flags & AUDCLNT_BUFFERFLAGS_SILENT)
-                pData = NULL;  // Tell copyData to write silence.
+                    if (flags & AUDCLNT_BUFFERFLAGS_SILENT)
+                        pData = NULL;  // Tell copyData to write silence.
 
-            // Copy the available capture data to the audio sink.
-            hr = copyData(pData, numFramesAvailable, pwfx, (HMMIO)hFile);
-            EXIT_ON_ERROR(hr)
+                // Copy the available capture data to the audio sink.
+                hr = copyData(pData, numFramesAvailable, pwfx, (HMMIO)hFile);
+                EXIT_ON_ERROR(hr)
 
-            hr = pCaptureClient->ReleaseBuffer(numFramesAvailable);
-            EXIT_ON_ERROR(hr)
+                    hr = pCaptureClient->ReleaseBuffer(numFramesAvailable);
+                EXIT_ON_ERROR(hr)
 
-            hr = pCaptureClient->GetNextPacketSize(&packetLength);
-            EXIT_ON_ERROR(hr)
-        }
+                    hr = pCaptureClient->GetNextPacketSize(&packetLength);
+                EXIT_ON_ERROR(hr)
+            }
     }
 
     hr = pAudioClient->Stop();  //Stop recording.
     EXIT_ON_ERROR(hr)
 
-    hr = finishWaveFile((HMMIO)hFile, &ckData, &ckRIFF);
+        hr = finishWaveFile((HMMIO)hFile, &ckData, &ckRIFF);
     if (FAILED(hr))
         return hr; //finishWaveFile does it's own logging
 
 Exit:
     CoTaskMemFree(pwfx);
     SAFE_RELEASE(pEnumerator)
-    SAFE_RELEASE(pDevice)
-    SAFE_RELEASE(pAudioClient)
-    SAFE_RELEASE(pCaptureClient)    
+        SAFE_RELEASE(pDevice)
+        SAFE_RELEASE(pAudioClient)
+        SAFE_RELEASE(pCaptureClient)
 
-    return hr;
-}
-
-void Recorder::stopRecording()
-{
-    isRecording = false;
+        return hr;
 }
 
 HRESULT Recorder::writeWaveHeader(HMMIO hFile, LPCWAVEFORMATEX pwfx, MMCKINFO* pckRIFF, MMCKINFO* pckData) {

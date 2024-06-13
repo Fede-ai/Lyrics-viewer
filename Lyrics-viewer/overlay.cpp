@@ -2,7 +2,6 @@
 #include <dwmapi.h>
 #include <Windows.h>
 #include <iostream>
-#include "Mlib/Io/mouse.hpp"
 
 Overlay::Overlay()
 	:
@@ -20,11 +19,11 @@ int Overlay::run()
 	w.setFramerateLimit(20);
 	lastPos = sf::Mouse::getPosition();
 
-	//	window without titlebar (with: w.clear())
+	// window without titlebar (with: w.clear())
 	//SetWindowLong(w.getSystemHandle(), GWL_STYLE, WS_VISIBLE | WS_CAPTION);
 	//MARGINS margins = { 1, 1, 1, 1 };
 
-	//	window completely transparent (with: w.clear(sf::Color::Transparent))
+	// window completely transparent (with: w.clear(sf::Color::Transparent))
 	MARGINS margins;
 	margins.cxLeftWidth = -1;
 	SetWindowLong(w.getSystemHandle(), GWL_STYLE, WS_POPUP | WS_VISIBLE);
@@ -32,22 +31,15 @@ int Overlay::run()
 	DwmExtendFrameIntoClientArea(w.getSystemHandle(), &margins);
 	SetWindowPos(w.getSystemHandle(), HWND_TOPMOST, 10, 10, 0, 0, SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
 
-	while (w.isOpen())
-	{
+	while (w.isOpen()) {
 		sf::Event e;
-		while (w.pollEvent(e))
-		{
-			if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left)
-			{
+		while (w.pollEvent(e)) {
+			if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left) {
 				if (titleBg.v.getBounds().contains(sf::Vector2f(sf::Mouse::getPosition(w))))
-				{
 					isMoving = true;
-				}
 			}
 			else if (e.type == sf::Event::MouseButtonReleased && e.mouseButton.button == sf::Mouse::Left)
-			{
 				isMoving = false;
-			}			
 			else if (e.type == sf::Event::Closed)
 				w.close();
 		}
@@ -64,25 +56,21 @@ void Overlay::update()
 {
 	auto pos = sf::Mouse::getPosition();
 
-	if (isMoving) {
+	if (isMoving)
 		w.setPosition(w.getPosition() + pos - lastPos);
-	}
 	else {
-		if (w.getPosition().x < pos.x && pos.x < w.getPosition().x + wSize.x &&
-			w.getPosition().y + 50 < pos.y && pos.y < w.getPosition().y + wSize.y)
-		{
-			if (isHidden == false)
-			{
-				bg.setSize(sf::Vector2f(wSize.x, 50));
+		if (w.getPosition().x < pos.x && pos.x < w.getPosition().x + int(wSize.x) &&
+			w.getPosition().y + 50 < pos.y && pos.y < w.getPosition().y + int(wSize.y)) {
+			if (isHidden == false) {
+				bg.setSize(sf::Vector2f(float(wSize.x), 50));
 				draw();
 				w.setSize(sf::Vector2u(wSize.x, 50));
 				isHidden = true;
 			}
 		}
-		else if (isHidden == true)
-		{
+		else if (isHidden == true) {
 			w.setSize(sf::Vector2u(wSize.x, wSize.y));
-			bg.setSize(sf::Vector2f(wSize.x, wSize.y));
+			bg.setSize(sf::Vector2f(float(wSize.x), float(wSize.y)));
 			draw();
 			isHidden = false;
 		}

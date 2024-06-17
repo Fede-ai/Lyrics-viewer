@@ -9,17 +9,15 @@ public:
 		size = inSize;
 		pos = inPos;
 		update();
-	}	
-	void draw(sf::RenderWindow& w) {
-		w.draw(v);
 	}
 	void setSize(sf::Vector2f inSize) {
 		size = inSize;
 		update();
 	}
-	sf::Vector2f getSize() { return size; }
 
 	sf::VertexArray v;
+	sf::Vector2f size;
+	sf::Vector2f pos;
 
 private:
 	void update() {
@@ -47,6 +45,4 @@ private:
 
 	float rad;
 	sf::Color c;
-	sf::Vector2f size;
-	sf::Vector2f pos;
 };

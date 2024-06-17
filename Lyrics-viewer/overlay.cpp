@@ -61,14 +61,14 @@ void Overlay::update()
 	else {
 		if (w.getPosition().x < pos.x && pos.x < w.getPosition().x + int(wSize.x) &&
 			w.getPosition().y + 50 < pos.y && pos.y < w.getPosition().y + int(wSize.y)) {
-			if (isHidden == false) {
+			if (!isHidden) {
 				bg.setSize(sf::Vector2f(float(wSize.x), 50));
 				draw();
 				w.setSize(sf::Vector2u(wSize.x, 50));
 				isHidden = true;
 			}
 		}
-		else if (isHidden == true) {
+		else if (isHidden) {
 			w.setSize(sf::Vector2u(wSize.x, wSize.y));
 			bg.setSize(sf::Vector2f(float(wSize.x), float(wSize.y)));
 			draw();
@@ -84,8 +84,8 @@ void Overlay::draw()
 	w.setView(sf::View(sf::FloatRect(sf::Vector2f(0, 0), sf::Vector2f(w.getSize()))));
 	w.clear(sf::Color::Transparent);
 
-	bg.draw(w);
-	titleBg.draw(w);
+	w.draw(bg.v);
+	w.draw(titleBg.v);
 	
 	w.display();
 }

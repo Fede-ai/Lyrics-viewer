@@ -113,12 +113,14 @@ void runHttpServer()
         else if (extension == ".ico")
             mimeType = "image/x-icon";
 
+        //extract the information from the requested file
         std::ifstream file(ROOT + rawPath, std::ios::binary);
         std::ostringstream ss;
         ss << file.rdbuf();
         std::string content = ss.str();
         file.close();
 
+        //response = 200 OK
         std::string response = "HTTP/1.1 200 OK\r\n";
         response += "Content-Type: " + mimeType + "\r\n";
         response += "Content-Length: " + std::to_string(content.size()) + "\r\n";

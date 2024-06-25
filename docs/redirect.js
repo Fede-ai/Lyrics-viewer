@@ -34,7 +34,7 @@ if (!code && !error) {
 	const clientId = '244ba241897d4c969d1260ad0c844f91';
 	const scopeValue = 'user-read-private user-read-email';
 	const authUrl = new URL('https://accounts.spotify.com/authorize');
-	const redirectUri = 'http://localhost:8000/redirect.html';
+	const redirectUri = 'http://fede-ai.github.io/Lyrics-viewer/redirect.html';
 	
 	generateCodeVerifierAndChallenge().then(({ codeVerifier, codeChallenge }) => {
 		const params = {
@@ -54,9 +54,9 @@ if (!code && !error) {
 }
 else if (code) {
 	window.localStorage.setItem('code', code);
-	window.location.href = 'http://localhost:8000/success.html';
+	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/success.html';
 }
 else {
 	window.localStorage.setItem('error', error);
-	window.location.href = 'http://localhost:8000/fail.html';
+	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/fail.html';
 }

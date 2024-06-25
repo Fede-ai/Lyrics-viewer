@@ -17,14 +17,14 @@ CurlWrapper::~CurlWrapper()
     curl_global_cleanup();
 }
 
-Responce CurlWrapper::send(Request req)
+Response CurlWrapper::send(Request req)
 {
     if (req.method == Request::Methods::NONE)
-        return Responce("No HTTP method was provided");
+        return Response("No HTTP method was provided");
     if (!curl)
-        return Responce("Curl wasn't initialized");
+        return Response("Curl wasn't initialized");
 
-    Responce res;
+    Response res;
 
     curl_easy_setopt(curl, CURLOPT_URL, req.url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
@@ -37,7 +37,7 @@ Responce CurlWrapper::send(Request req)
     else if (req.method == Request::Methods::GET)
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
     else 
-        return Responce("Invalid HTTP method provided");
+        return Response("Invalid HTTP method provided");
 
     struct curl_slist* chunk = nullptr;
     for (const std::string& header : req.headers)
@@ -63,7 +63,7 @@ size_t CurlWrapper::writeCallback(void* contents, size_t size, size_t nmemb, voi
     return size * nmemb;
 }
 
-json Responce::toJson()
+json Response::toJson()
 {
     return json::parse(body);
 }

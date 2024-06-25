@@ -3,6 +3,8 @@
 #include <Windows.h>
 #include <iostream>
 
+#pragma comment (lib, "dwmapi.lib")
+
 Overlay::Overlay()
 	:
 	bg(20, sf::Vector2f(wSize), sf::Vector2f(0, 0), sf::Color(100, 100, 100, 220)),

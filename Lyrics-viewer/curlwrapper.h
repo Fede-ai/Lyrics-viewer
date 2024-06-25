@@ -5,9 +5,9 @@
 
 using json = nlohmann::json;
 
-struct Responce {	
-	Responce() = default;
-	Responce(std::string inError)
+struct Response {	
+	Response() = default;
+	Response(std::string inError)
 		:
 		error(inError)
 	{
@@ -46,7 +46,7 @@ public:
 	CurlWrapper();
 	~CurlWrapper();
 
-	Responce send(Request req);
+	Response send(Request req);
 
 private:
 	static size_t writeCallback(void* contents, size_t size, size_t nmemb, void* userp);

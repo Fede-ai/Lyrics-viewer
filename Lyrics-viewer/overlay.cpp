@@ -3,7 +3,6 @@
 #include <Windows.h>
 #include <iostream>
 
-#pragma comment (lib, "dwmapi.lib")
 
 Overlay::Overlay()
 	:

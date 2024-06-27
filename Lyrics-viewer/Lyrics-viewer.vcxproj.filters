@@ -9,6 +9,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
+    <Filter Include="cef">
+      <UniqueIdentifier>{f7f87791-aff9-48be-a9e5-e2b2534e972a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -19,6 +22,12 @@
     </ClCompile>
     <ClCompile Include="curlwrapper.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cefhandler.cpp">
+      <Filter>cef</Filter>
+    </ClCompile>
+    <ClCompile Include="cefapp.cpp">
+      <Filter>cef</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -33,6 +42,12 @@
     </ClInclude>
     <ClInclude Include="json.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cefhandler.h">
+      <Filter>cef</Filter>
+    </ClInclude>
+    <ClInclude Include="cefapp.h">
+      <Filter>cef</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

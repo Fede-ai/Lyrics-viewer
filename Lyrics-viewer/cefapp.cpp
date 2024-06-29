@@ -30,7 +30,7 @@ namespace {
         void OnWindowCreated(CefRefPtr<CefWindow> window) override {
             RECT screen;
             GetWindowRect(GetDesktopWindow(), &screen);
-            CefPoint position(screen.right / 2.f - 300, screen.bottom / 2.2 - 300);
+            CefPoint position(int(screen.right / 2.f) - 300, int(screen.bottom / 2.2f) - 300);
             window->SetPosition(position);
 
             // Add the browser view and show the window.
@@ -162,7 +162,7 @@ void SimpleApp::OnContextInitialized() {
         else if (show_state_value == "maximized") {
             initial_show_state = CEF_SHOW_STATE_MAXIMIZED;
         }
-
+        
         // Create the Window. It will show itself after creation.
         CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(
             browser_view, runtime_style, initial_show_state));

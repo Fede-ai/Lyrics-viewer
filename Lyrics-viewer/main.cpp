@@ -1,20 +1,25 @@
 #include "overlay.h"
 #include "curlwrapper.h"
+#include "cefapp.h"
+
 #include "include/cef_command_line.h"
 #include "include/cef_sandbox_win.h"
-#include "cefapp.h"
 
 #pragma comment (lib, "dwmapi.lib")
 
 int main() {
-    // Provide CEF with command-line arguments.
-    CefMainArgs mainArgs;
+    char buf[_MAX_PATH + 1];
+    GetModuleFileNameA(NULL, buf, _MAX_PATH);
+    std::string dir = std::string(buf).substr(0, std::string(buf).find_last_of('\\'));
 
-    // Specify CEF global settings here.
+    CefMainArgs mainArgs;
     CefSettings settings;
+    CefBrowserSettings s;
 
     settings.chrome_runtime = true;
     settings.no_sandbox = true;
+    CefString(&settings.root_cache_path).FromASCII((dir + std::string("/cache")).c_str());
+    CefString(&settings.log_file).FromASCII((dir + std::string("/log.log")).c_str());
 
     // SimpleApp implements application-level callbacks for the browser process.
     // It will create the first browser instance in OnContextInitialized() after
@@ -29,10 +34,9 @@ int main() {
 
     // Run the CEF message loop. This will block until CefQuitMessageLoop() is called
     CefRunMessageLoop();
-    CefShutdown();
 
-    return 0;
+    CefShutdown();
     
-    //Overlay ol;
-    //return ol.run();
+    Overlay ol;
+    return ol.run();
 }

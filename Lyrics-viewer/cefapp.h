@@ -1,9 +1,5 @@
-// Copyright (c) 2013 The Chromium Embedded Framework Authors. All rights
-// reserved. Use of this source code is governed by a BSD-style license that
-// can be found in the LICENSE file.
-
-#ifndef CEF_TESTS_CEFSIMPLE_SIMPLE_APP_H_
-#define CEF_TESTS_CEFSIMPLE_SIMPLE_APP_H_
+#pragma once
+#include "cefhandler.h"
 
 #include "include/cef_app.h"
 
@@ -19,11 +15,13 @@ public:
 
     // CefBrowserProcessHandler methods:
     void OnContextInitialized() override;
-    CefRefPtr<CefClient> GetDefaultClient() override;
+
+    // Called when a new browser window is created via the Chrome runtime UI.
+    CefRefPtr<CefClient> GetDefaultClient() override {
+        return SimpleHandler::GetInstance();
+    }
 
 private:
     // Include the default reference counting implementation.
     IMPLEMENT_REFCOUNTING(SimpleApp);
 };
-
-#endif  // CEF_TESTS_CEFSIMPLE_SIMPLE_APP_H_

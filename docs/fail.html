@@ -9,7 +9,9 @@
 		if (typeof(sendToCpp) !== typeof(Function)) {
 			window.location.href = 'http://fede-ai.github.io:8000/external.html'
 		}
-		sendToCpp(false, window.localStorage.getItem("error"));
+		else {
+			sendToCpp(false, window.localStorage.getItem("error"));
+		}
 	</script>
 </head>
 <body>

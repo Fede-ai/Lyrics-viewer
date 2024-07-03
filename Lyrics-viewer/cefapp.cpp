@@ -137,7 +137,6 @@ void SimpleApp::OnContextInitialized()
     CefBrowserSettings browserSettings;
 
     std::string url = "http://fede-ai.github.io/Lyrics-viewer/redirect.html";
-    url = "localhost:8000/redirect.html";
 
     // Create the BrowserView.
     CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(

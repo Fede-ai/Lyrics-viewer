@@ -31,22 +31,25 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="overlay.h">
+    <ClInclude Include="overlay.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="roundedrect.h">
+    <ClInclude Include="roundedrect.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="curlwrapper.h">
+    <ClInclude Include="curlwrapper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cefhandler.h">
+    <ClInclude Include="cefhandler.hpp">
       <Filter>cef</Filter>
     </ClInclude>
-    <ClInclude Include="cefapp.h">
+    <ClInclude Include="cefapp.hpp">
+      <Filter>cef</Filter>
+    </ClInclude>
+    <ClInclude Include="binding.hpp">
       <Filter>cef</Filter>
     </ClInclude>
   </ItemGroup>

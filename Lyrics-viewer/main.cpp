@@ -1,9 +1,6 @@
-#include "overlay.h"
-#include "curlwrapper.h"
-#include "cefapp.h"
-
-#include "include/cef_command_line.h"
-#include "include/cef_sandbox_win.h"
+#include "overlay.hpp"
+#include "curlwrapper.hpp"
+#include "cefapp.hpp"
 
 #pragma comment (lib, "dwmapi.lib")
 
@@ -27,8 +24,10 @@ int main() {
     // Run the CEF message loop. This will block until CefQuitMessageLoop() is called
     CefRunMessageLoop();
 
+    Overlay ol;
+    int state = ol.run();
+
     CefShutdown();
 
-    Overlay ol;
-    return ol.run();
+    return state;
 }

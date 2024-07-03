@@ -1,4 +1,4 @@
-#include "curlwrapper.h"
+#include "curlwrapper.hpp"
 
 CurlWrapper::CurlWrapper()
 {

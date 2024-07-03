@@ -1,4 +1,5 @@
-#include "cefapp.h"
+#include "cefapp.hpp"
+#include "binding.hpp"
 
 #include <string>
 #include "include/cef_browser.h"
@@ -100,9 +101,29 @@ namespace {
         IMPLEMENT_REFCOUNTING(SimpleBrowserViewDelegate);
         DISALLOW_COPY_AND_ASSIGN(SimpleBrowserViewDelegate);
     };
+
+    class MyRenderProcessHandler : public CefRenderProcessHandler {
+    public:
+        virtual void OnContextCreated(CefRefPtr<CefBrowser> browser,
+            CefRefPtr<CefFrame> frame,
+            CefRefPtr<CefV8Context> context) override {
+            CefRefPtr<CefV8Value> global = context->GetGlobal();
+            CefRefPtr<MyV8Handler> handler = new MyV8Handler();
+
+            CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction("sendToCpp", handler);
+            global->SetValue("sendToCpp", func, V8_PROPERTY_ATTRIBUTE_NONE);
+        }
+
+        IMPLEMENT_REFCOUNTING(MyRenderProcessHandler);
+    };
 }
 
-void SimpleApp::OnContextInitialized() 
+CefRefPtr<CefRenderProcessHandler> SimpleApp::GetRenderProcessHandler()
+{
+    return new MyRenderProcessHandler();
+}
+
+void SimpleApp::OnContextInitialized()
 {
     CEF_REQUIRE_UI_THREAD();
 
@@ -116,6 +137,7 @@ void SimpleApp::OnContextInitialized()
     CefBrowserSettings browserSettings;
 
     std::string url = "http://fede-ai.github.io/Lyrics-viewer/redirect.html";
+    url = "localhost:8000/redirect.html";
 
     // Create the BrowserView.
     CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(

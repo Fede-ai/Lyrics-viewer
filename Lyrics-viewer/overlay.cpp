@@ -1,4 +1,4 @@
-#include "overlay.h"
+#include "overlay.hpp"
 #include <dwmapi.h>
 #include <Windows.h>
 #include <iostream>

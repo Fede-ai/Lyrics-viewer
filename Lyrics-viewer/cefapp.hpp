@@ -1,5 +1,5 @@
 #pragma once
-#include "cefhandler.h"
+#include "cefhandler.hpp"
 
 #include "include/cef_app.h"
 
@@ -12,6 +12,8 @@ public:
     CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override {
         return this;
     }
+
+    CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override;
 
     // CefBrowserProcessHandler methods:
     void OnContextInitialized() override;

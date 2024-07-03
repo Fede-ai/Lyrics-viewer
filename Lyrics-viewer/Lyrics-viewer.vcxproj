@@ -166,12 +166,13 @@ endlocal</Command>
     <ClCompile Include="curlwrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cefapp.h" />
-    <ClInclude Include="cefhandler.h" />
+    <ClInclude Include="binding.hpp" />
+    <ClInclude Include="cefapp.hpp" />
+    <ClInclude Include="cefhandler.hpp" />
     <ClInclude Include="json.hpp" />
-    <ClInclude Include="overlay.h" />
-    <ClInclude Include="curlwrapper.h" />
-    <ClInclude Include="roundedrect.h" />
+    <ClInclude Include="overlay.hpp" />
+    <ClInclude Include="curlwrapper.hpp" />
+    <ClInclude Include="roundedrect.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

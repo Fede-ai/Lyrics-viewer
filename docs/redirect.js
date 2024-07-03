@@ -1,8 +1,12 @@
 const urlParams = new URLSearchParams(window.location.search);
 let code = urlParams.get('code'), error = urlParams.get('error');
 
+//not from my app
+if (typeof(sendToCpp) !== typeof(Function)) {
+	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/external.html';
+}
 //redirect to spotify login
-if (!code && !error) {
+else if (!code && !error) {
 	const generateRandomString = (length) => {
 		const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 		const values = crypto.getRandomValues(new Uint8Array(length));
@@ -52,10 +56,12 @@ if (!code && !error) {
 		window.location.href = authUrl.toString();
 	});
 }
+//success
 else if (code) {
 	window.localStorage.setItem('code', code);
 	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/success.html';
 }
+//fail
 else {
 	window.localStorage.setItem('error', error);
 	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/fail.html';

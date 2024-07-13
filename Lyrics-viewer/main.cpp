@@ -73,6 +73,26 @@ int main()
     CefShutdown();
 
     getAuthInfoThread.join();
+    auto code = info.substr(0, info.find_first_of('+'));
+    auto codeVerifier = info.substr(code.length() + 1);
+
+    CurlWrapper curl;
+    Request req(Request::Methods::POST);
+    req.headers = { "Content-Type: application/x-www-form-urlencoded" };
+    req.url = "https://accounts.spotify.com/api/token";
+    req.body = "grant_type=authorization_code&code=" + code + "&redirect_uri=http://fede-ai.github.io/Lyrics-viewer/redirect.html" +
+        "&client_id=244ba241897d4c969d1260ad0c844f91&code_verifier=" + codeVerifier;
+
+    auto res = curl.send(req).toJson();
+    std::string token = res["access_token"];
+    std::erase(token, '"');
+    std::string refresh = res["refresh_token"];
+    std::erase(refresh, '"');
+
+    Request r = Request(Request::Methods::GET);
+    r.url = "https://api.spotify.com/v1/me";
+    r.headers = { "Authorization: Bearer " + token };
+    std::cout << curl.send(r).body;
 
     //Overlay ol;
     //int state = ol.run();

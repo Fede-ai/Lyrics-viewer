@@ -26,6 +26,7 @@ Response CurlWrapper::send(Request req)
 
     Response res;
 
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, FALSE);
     curl_easy_setopt(curl, CURLOPT_URL, req.url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &res.body);

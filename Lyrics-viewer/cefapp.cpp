@@ -101,26 +101,15 @@ namespace {
         IMPLEMENT_REFCOUNTING(SimpleBrowserViewDelegate);
         DISALLOW_COPY_AND_ASSIGN(SimpleBrowserViewDelegate);
     };
-
-    class MyRenderProcessHandler : public CefRenderProcessHandler {
-    public:
-        virtual void OnContextCreated(CefRefPtr<CefBrowser> browser,
-            CefRefPtr<CefFrame> frame,
-            CefRefPtr<CefV8Context> context) override {
-            CefRefPtr<CefV8Value> global = context->GetGlobal();
-            CefRefPtr<MyV8Handler> handler = new MyV8Handler();
-
-            CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction("sendToCpp", handler);
-            global->SetValue("sendToCpp", func, V8_PROPERTY_ATTRIBUTE_NONE);
-        }
-
-        IMPLEMENT_REFCOUNTING(MyRenderProcessHandler);
-    };
 }
 
-CefRefPtr<CefRenderProcessHandler> SimpleApp::GetRenderProcessHandler()
+void SimpleApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
 {
-    return new MyRenderProcessHandler();
+    CefRefPtr<CefV8Value> global = context->GetGlobal();
+    CefRefPtr<MyV8Handler> handler = new MyV8Handler();
+
+    CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction("sendToCpp", handler);
+    global->SetValue("sendToCpp", func, V8_PROPERTY_ATTRIBUTE_NONE);
 }
 
 void SimpleApp::OnContextInitialized()

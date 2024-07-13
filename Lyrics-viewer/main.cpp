@@ -4,6 +4,35 @@
 
 #pragma comment (lib, "dwmapi.lib")
 
+void getAuthInfo(std::string& info) 
+{
+    //create a named pipe
+    HANDLE hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\MyNamedPipe"), PIPE_ACCESS_DUPLEX,
+        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 1024, 1024, 0, NULL);
+
+    if (hPipe == INVALID_HANDLE_VALUE) {
+        std::cerr << "error 102: " << GetLastError() << "\n";
+        return;
+    }
+
+    //wait for a client to connect
+    if (ConnectNamedPipe(hPipe, NULL)) {
+        char buffer[1024];
+        DWORD dwRead;
+        BOOL success = ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL);
+
+        if (success) {
+            buffer[dwRead] = '\0'; //null terminate the string
+            info = buffer;
+        }
+        else
+            std::cerr << "error 103: " << GetLastError() << "\n";
+    }
+
+    DisconnectNamedPipe(hPipe);
+    CloseHandle(hPipe);
+}
+
 int main() 
 {
     char buf[_MAX_PATH + 1];
@@ -15,6 +44,7 @@ int main()
 
     settings.chrome_runtime = true;
     settings.no_sandbox = true;
+    settings.log_severity = LOGSEVERITY_FATAL;
     CefString(&settings.root_cache_path).FromASCII((dir + std::string("/cache")).c_str());
     CefString(&settings.log_file).FromASCII((dir + std::string("/log.log")).c_str());
 
@@ -34,10 +64,15 @@ int main()
     if (!CefInitialize(mainArgs, settings, app.get(), nullptr))
         return CefGetExitCode();
 
+    std::string info;
+    std::thread getAuthInfoThread(getAuthInfo, std::ref(info));
+
     // Run the CEF message loop. This will block until CefQuitMessageLoop() is called
     CefRunMessageLoop();
 
     CefShutdown();
+
+    getAuthInfoThread.join();
 
     //Overlay ol;
     //int state = ol.run();

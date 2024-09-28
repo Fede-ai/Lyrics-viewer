@@ -1,6 +1,9 @@
 const urlParams = new URLSearchParams(window.location.search);
 let code = urlParams.get('code'), error = urlParams.get('error');
 
+const redirectUri = 'http://fede-ai.github.io/Lyrics-viewer/redirect.html';
+const clientId = '244ba241897d4c969d1260ad0c844f91';
+
 //not from my app
 if (typeof(sendToCpp) !== typeof(Function)) {
 	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/external.html';
@@ -35,10 +38,8 @@ else if (!code && !error) {
 		return { codeVerifier, codeChallenge };
 	};
 	
-	const clientId = '244ba241897d4c969d1260ad0c844f91';
 	const scopeValue = 'user-read-private user-read-email';
 	const authUrl = new URL('https://accounts.spotify.com/authorize');
-	const redirectUri = 'http://fede-ai.github.io/Lyrics-viewer/redirect.html';
 	
 	generateCodeVerifierAndChallenge().then(({ codeVerifier, codeChallenge }) => {
 		const params = {
@@ -56,12 +57,32 @@ else if (!code && !error) {
 		window.location.href = authUrl.toString();
 	});
 }
-//success
+//success after spotify login
 else if (code) {
-	window.localStorage.setItem('code', code);
+	const payload = {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+		},
+		body: new URLSearchParams({
+			client_id: clientId,
+			grant_type: 'authorization_code',
+			code,
+			redirect_uri: redirectUri,
+			code_verifier: localStorage.getItem('code_verifier'),
+		}),
+	}
+	
+	const url = new URL('https://accounts.spotify.com/api/token');
+	const body = await fetch(url, payload);
+	const response = await body.json();
+	
+	localStorage.setItem('access_token', response.access_token);
+	localStorage.setItem('refresh_token', response.refresh_token);
+
 	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/success.html';
 }
-//fail
+//fail after sporify login
 else {
 	window.localStorage.setItem('error', error);
 	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/fail.html';

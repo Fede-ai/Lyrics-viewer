@@ -17,43 +17,46 @@ CurlWrapper::~CurlWrapper()
     curl_global_cleanup();
 }
 
-Response CurlWrapper::send(Request req)
+Response CurlWrapper::sendReq(Request req)
 {
-    if (req.method == Request::Methods::NONE)
-        return Response("No HTTP method was provided");
     if (!curl)
-        return Response("Curl wasn't initialized");
+        return Response("curl wasn't initialized");
+
+    //set the request method
+    switch (req.method) {
+    default:
+        return Response("invalid HTTP method provided");
+        break;
+    case Request::Methods::POST:
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, req.body.c_str());
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+        break;
+    case Request::Methods::GET:
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
+        break;
+    }
 
     Response res;
-
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+    curl_easy_setopt(curl, CURLOPT_CAINFO, ".\\cacert.pem");
     curl_easy_setopt(curl, CURLOPT_URL, req.url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &res.body);
-    if (req.method == Request::Methods::POST)
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, req.body.c_str());
 
-    if (req.method == Request::Methods::POST)
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-    else if (req.method == Request::Methods::GET)
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
-    else 
-        return Response("Invalid HTTP method provided");
-
+    //set request headers
     struct curl_slist* chunk = nullptr;
     for (const std::string& header : req.headers)
         chunk = curl_slist_append(chunk, header.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
+    //perform request
     CURLcode curlRes = curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &res.code);
+    if (curlRes != CURLE_OK)
+        res.error = "curl error: " + std::string(curl_easy_strerror(curlRes));
 
-    if (curlRes == CURLE_OK)
-        res.success = true;
-    else
-        res.error = curl_easy_strerror(curlRes);
-
+    //cleanup
     curl_slist_free_all(chunk);
+    curl_easy_reset(curl);
 
     return res;
 }
@@ -64,7 +67,7 @@ size_t CurlWrapper::writeCallback(void* contents, size_t size, size_t nmemb, voi
     return size * nmemb;
 }
 
-json Response::toJson()
+nlohmann::json Response::toJson()
 {
-    return json::parse(body);
+    return nlohmann::json::parse(body);
 }

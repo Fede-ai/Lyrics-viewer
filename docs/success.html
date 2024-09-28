@@ -10,9 +10,9 @@
 			window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/external.html'
 		}
 		else {
-			let code = window.localStorage.getItem("code");
-			let codeVerifier = window.localStorage.getItem("code_verifier");
-			sendToCpp(true, `${code}+${codeVerifier}`);
+			let access_token = window.localStorage.getItem("access_token");
+			let refresh_token = window.localStorage.getItem("refresh_token");
+			sendToCpp(`s${access_token}+${refresh_token}`);
 		}
 	</script>
 </head>

@@ -128,10 +128,10 @@ void SimpleApp::OnContextInitialized()
     std::string url = "http://fede-ai.github.io/Lyrics-viewer/redirect.html";
 
     // Create the BrowserView.
-    CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
+    CefRefPtr<CefBrowserView> browserView = CefBrowserView::CreateBrowserView(
         SimpleHandler::GetInstance(), url, browserSettings, nullptr, nullptr,
         new SimpleBrowserViewDelegate(runtimeStyle));
     
     // Create the Window. It will show itself after creation.
-    CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view, runtimeStyle, showState));
+    CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browserView, runtimeStyle, showState));
 }

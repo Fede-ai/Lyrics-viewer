@@ -3,8 +3,7 @@
 #include <curl/curl.h>
 #include <iostream>
 
-using json = nlohmann::json;
-
+//if error == "" than the message was sent successfully
 struct Response {	
 	Response() = default;
 	Response(std::string inError)
@@ -13,9 +12,8 @@ struct Response {
 	{
 	}
 
-	json toJson();
+	nlohmann::json toJson();
 
-	bool success = false;
 	std::string error = "";
 	long code = 0;
 	std::string body;
@@ -41,14 +39,23 @@ struct Request {
 	std::string body = "";
 };
 
+//singleton class
 class CurlWrapper {
 public:
-	CurlWrapper();
 	~CurlWrapper();
 
-	Response send(Request req);
+	CurlWrapper(const CurlWrapper&) = delete;
+	CurlWrapper& operator=(const CurlWrapper&) = delete;
+
+	static Response send(Request req) {
+		static CurlWrapper instance;
+		return instance.sendReq(req);
+	}
 
 private:
+	CurlWrapper();
+
+	Response sendReq(Request req);
 	static size_t writeCallback(void* contents, size_t size, size_t nmemb, void* userp);
 
 	CURL* curl = NULL;

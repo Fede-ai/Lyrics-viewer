@@ -59,28 +59,32 @@ else if (!code && !error) {
 }
 //success after spotify login
 else if (code) {
-	const payload = {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/x-www-form-urlencoded',
-		},
-		body: new URLSearchParams({
-			client_id: clientId,
-			grant_type: 'authorization_code',
-			code,
-			redirect_uri: redirectUri,
-			code_verifier: localStorage.getItem('code_verifier'),
-		}),
+	const getToken = async (c) => {
+		const payload = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+			},
+			body: new URLSearchParams({
+				client_id: clientId,
+				grant_type: 'authorization_code',
+				code: c,
+				redirect_uri: redirectUri,
+				code_verifier: localStorage.getItem('code_verifier'),
+			}),
+		}
+		
+		const url = new URL('https://accounts.spotify.com/api/token');
+		const body = await fetch(url, payload);
+		return await body.json();
 	}
-	
-	const url = new URL('https://accounts.spotify.com/api/token');
-	const body = await fetch(url, payload);
-	const response = await body.json();
-	
-	localStorage.setItem('access_token', response.access_token);
-	localStorage.setItem('refresh_token', response.refresh_token);
 
-	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/success.html';
+	getToken(code).then((response) => {
+		localStorage.setItem('access_token', response.access_token);
+		localStorage.setItem('refresh_token', response.refresh_token);
+
+		window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/success.html';
+	}) 
 }
 //fail after sporify login
 else {

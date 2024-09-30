@@ -1,60 +1,14 @@
+#include <SFML/Graphics.hpp>
 #include "cefhandler.hpp"
 
-#include <sstream>
-#include <string>
-
-#include "include/base/cef_callback.h"
 #include "include/cef_app.h"
-#include "include/cef_parser.h"
-#include "include/views/cef_browser_view.h"
-#include "include/views/cef_window.h"
-#include "include/wrapper/cef_closure_task.h"
 #include "include/wrapper/cef_helpers.h"
-
-namespace {
-    SimpleHandler* g_instance = nullptr;
-
-    // Returns a data: URI with the specified contents.
-    std::string GetDataURI(const std::string& data, const std::string& mime_type) {
-        return "data:" + mime_type + ";base64," + CefURIEncode(CefBase64Encode(data.data(), data.size()), false).ToString();
-    }
-}
-
-SimpleHandler::SimpleHandler()
-{
-    DCHECK(!g_instance);
-    g_instance = this;
-}
-
-SimpleHandler::~SimpleHandler() 
-{
-    g_instance = nullptr;
-}
-
-// static
-SimpleHandler* SimpleHandler::GetInstance() 
-{
-    return g_instance;
-}
-
-void SimpleHandler::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title) 
-{
-    CEF_REQUIRE_UI_THREAD();
-
-    if (auto browser_view = CefBrowserView::GetForBrowser(browser)) {
-        // Set the title of the window using the Views framework.
-        CefRefPtr<CefWindow> window = browser_view->GetWindow();
-        if (window)
-            window->SetTitle(title);
-    }
-}
 
 void SimpleHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser) 
 {
     CEF_REQUIRE_UI_THREAD();
 
-    // Add to the list of existing browsers.
-    browser_list_.push_back(browser);
+    browser_ = browser;
 }
 
 bool SimpleHandler::DoClose(CefRefPtr<CefBrowser> browser) 
@@ -66,8 +20,7 @@ bool SimpleHandler::DoClose(CefRefPtr<CefBrowser> browser)
     // process.
 
     // Set a flag to indicate that the window close should be allowed.
-    if (browser_list_.size() == 1)
-        is_closing_ = true;
+    is_closing_ = true;
 
     // Allow the close. For windowed browsers this will result in the OS close
     // event being sent.
@@ -78,56 +31,37 @@ void SimpleHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
     CEF_REQUIRE_UI_THREAD();
 
-    // Remove from the list of existing browsers.
-    BrowserList::iterator bit = browser_list_.begin();
-    for (; bit != browser_list_.end(); ++bit) {
-        if ((*bit)->IsSame(browser)) {
-            browser_list_.erase(bit);
-            break;
+    CefQuitMessageLoop();
+}
+
+void SimpleHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
+{
+    rect = CefRect(0, 0, 500, 300);
+
+    std::cout << "SIZE\n";
+}
+
+void SimpleHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, 
+    const RectList& dirtyRects, const void* buffer, int width, int height)
+{
+
+    sf::Image img;
+    img.create(width, height);
+    for (int x = 0; x < width; x++) {
+        for (int y = 0; y < height; y++) {
+            char r = ((char*)(buffer))[4 * (y * width + x) + 2];
+            char g = ((char*)(buffer))[4 * (y * width + x) + 1];
+            char b = ((char*)(buffer))[4 * (y * width + x)];
+            char a = ((char*)(buffer))[4 * (y * width + x) + 3];
+
+            img.setPixel(x, y, sf::Color(r, g, b, a));
         }
     }
+    static int i = 0;
+    img.saveToFile("C:\\Users\\feder\\Desktop\\images\\img" + std::to_string(i) + ".png");
+    i++;
 
-    // All browser windows have closed. Quit the application message loop.
-    if (browser_list_.empty())
-        CefQuitMessageLoop();
-}
-
-void SimpleHandler::ShowMainWindow() 
-{
-    if (!CefCurrentlyOn(TID_UI)) {
-        // Execute on the UI thread.
-        CefPostTask(TID_UI, base::BindOnce(&SimpleHandler::ShowMainWindow, this));
-        return;
-    }
-
-    if (browser_list_.empty())
-        return;
-
-    auto main_browser = browser_list_.front();
-
-    if (auto browser_view = CefBrowserView::GetForBrowser(main_browser)) {
-        // Show the window using the Views framework.
-        if (auto window = browser_view->GetWindow())
-            window->Show();
-    }
-}
-
-void SimpleHandler::CloseAllBrowsers(bool force_close) 
-{
-    if (!CefCurrentlyOn(TID_UI)) {
-        // Execute on the UI thread.
-        CefPostTask(TID_UI, base::BindOnce(&SimpleHandler::CloseAllBrowsers, this,
-            force_close));
-        return;
-    }
-
-    if (browser_list_.empty()) {
-        return;
-    }
-
-    BrowserList::const_iterator it = browser_list_.begin();
-    for (; it != browser_list_.end(); ++it)
-        (*it)->GetHost()->CloseBrowser(force_close);
+    std::cout << "PAINT\n";
 }
 
 void SimpleHandler::PlatformTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title)

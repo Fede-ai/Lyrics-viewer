@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{56d58241-3ea6-4cd5-9b37-894be1e7151e}</ProjectGuid>
+    <ProjectGuid>{ff872237-e507-4c12-a4f0-7454b80cc5b7}</ProjectGuid>
     <RootNamespace>Lyricsviewer</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -43,31 +43,38 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\SFML-2.6.1\include;C:\libcurl\include;C:\cef;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\cef;C:\libcurl\include;C:\SFML-2.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\SFML-2.6.1\lib;C:\libcurl\lib;C:\cef\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sfml-graphics-d.lib;sfml-main.lib;sfml-window-d.lib;sfml-system-d.lib;libcurl.dll.a;libcef.lib;libcef_dll_wrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sfml-system-d.lib;sfml-window-d.lib;sfml-graphics-d.lib;libcurl.dll.a;libcef.lib;libcef_dll_wrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalManifestDependencies>%(AdditionalManifestDependencies)</AdditionalManifestDependencies>
     </Link>
     <PostBuildEvent>
       <Command>setlocal
 
-mt.exe -nologo -manifest "C:/cef/tests/cefsimple/cefsimple.exe.manifest" "C:/cef/tests/cefsimple/compatibility.manifest" -outputresource:"C:\Users\feder\Desktop\Lyrics-viewer\x64\Release\Lyrics-viewer.exe";#1
+mt.exe -nologo -manifest "$(SolutionDir)$(ProjectName)\Lyrics-viewer.exe.manifest" "$(SolutionDir)$(ProjectName)\compatibility.manifest" -outputresource:"$(SolutionDir)\$(Platform)\$(Configuration)\$(SolutionName).exe";#1
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 endlocal</Command>
-    </PostBuildEvent>
-    <PostBuildEvent>
       <Message>Adding manifest...</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -79,8 +86,8 @@ endlocal</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\SFML-2.6.1\include;C:\libcurl\include;C:\cef;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\cef;C:\libcurl\include;C:\SFML-2.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -89,35 +96,31 @@ endlocal</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\SFML-2.6.1\lib;C:\libcurl\lib;C:\cef\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sfml-graphics.lib;sfml-main.lib;sfml-window.lib;sfml-system.lib;libcurl.dll.a;libcef.lib;libcef_dll_wrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sfml-system.lib;sfml-window.lib;sfml-graphics.lib;libcurl.dll.a;libcef.lib;libcef_dll_wrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalManifestDependencies>%(AdditionalManifestDependencies)</AdditionalManifestDependencies>
     </Link>
     <PostBuildEvent>
       <Command>setlocal
 
-mt.exe -nologo -manifest "C:/cef/tests/cefsimple/cefsimple.exe.manifest" "C:/cef/tests/cefsimple/compatibility.manifest" -outputresource:"C:\Users\feder\Desktop\Lyrics-viewer\x64\Release\Lyrics-viewer.exe";#1
+mt.exe -nologo -manifest "$(SolutionDir)$(ProjectName)\Lyrics-viewer.exe.manifest" "$(SolutionDir)$(ProjectName)\compatibility.manifest" -outputresource:"$(SolutionDir)\$(Platform)\$(Configuration)\$(SolutionName).exe";#1
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 endlocal</Command>
-    </PostBuildEvent>
-    <PostBuildEvent>
       <Message>Adding manifest...</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="cefapp.cpp" />
-    <ClCompile Include="cefhandler.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="overlay.cpp" />
-    <ClCompile Include="curlwrapper.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="binding.hpp" />
     <ClInclude Include="cefapp.hpp" />
     <ClInclude Include="cefhandler.hpp" />
-    <ClInclude Include="json.hpp" />
-    <ClInclude Include="overlay.hpp" />
     <ClInclude Include="curlwrapper.hpp" />
-    <ClInclude Include="roundedrect.hpp" />
+    <ClInclude Include="json.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="cefapp.cpp" />
+    <ClCompile Include="cefhandler.cpp" />
+    <ClCompile Include="curlwrapper.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

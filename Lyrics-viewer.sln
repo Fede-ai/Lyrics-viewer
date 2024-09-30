@@ -3,10 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33723.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Lyrics-viewer", "Lyrics-viewer\Lyrics-viewer.vcxproj", "{56D58241-3EA6-4CD5-9B37-894BE1E7151E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Lyrics-viewer", "Lyrics-viewer\Lyrics-viewer.vcxproj", "{FF872237-E507-4C12-A4F0-7454B80CC5B7}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9AE062E1-EF57-4124-AD66-4EB97854C36A}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{84E595B7-C782-46FD-992D-C1021F86099E}"
 	ProjectSection(SolutionItems) = preProject
+		ERRORS.md = ERRORS.md
 		LICENSE.md = LICENSE.md
 		README.md = README.md
 	EndProjectSection
@@ -17,15 +18,15 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{56D58241-3EA6-4CD5-9B37-894BE1E7151E}.Debug|x64.ActiveCfg = Release|x64
-		{56D58241-3EA6-4CD5-9B37-894BE1E7151E}.Debug|x64.Build.0 = Release|x64
-		{56D58241-3EA6-4CD5-9B37-894BE1E7151E}.Release|x64.ActiveCfg = Release|x64
-		{56D58241-3EA6-4CD5-9B37-894BE1E7151E}.Release|x64.Build.0 = Release|x64
+		{FF872237-E507-4C12-A4F0-7454B80CC5B7}.Debug|x64.ActiveCfg = Debug|x64
+		{FF872237-E507-4C12-A4F0-7454B80CC5B7}.Debug|x64.Build.0 = Debug|x64
+		{FF872237-E507-4C12-A4F0-7454B80CC5B7}.Release|x64.ActiveCfg = Release|x64
+		{FF872237-E507-4C12-A4F0-7454B80CC5B7}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {2D82C184-1BD6-47A5-AD93-8790EA33F3A9}
+		SolutionGuid = {32DB1267-E482-4506-96D5-7D3D893EEDBF}
 	EndGlobalSection
 EndGlobal

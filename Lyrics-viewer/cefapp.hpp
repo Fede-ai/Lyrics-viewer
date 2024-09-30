@@ -25,11 +25,6 @@ public:
     // CefBrowserProcessHandler methods:
     void OnContextInitialized() override;
 
-    // Called when a new browser window is created via the Chrome runtime UI.
-    CefRefPtr<CefClient> GetDefaultClient() override {
-        return SimpleHandler::GetInstance();
-    }
-
 private:
     // Include the default reference counting implementation.
     IMPLEMENT_REFCOUNTING(SimpleApp);

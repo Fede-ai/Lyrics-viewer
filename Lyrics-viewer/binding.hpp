@@ -14,23 +14,20 @@ public:
             HANDLE hPipe = CreateFile(TEXT("\\\\.\\pipe\\MyNamedPipe"), 
                 GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
-            //failed to create pipe (error 100)
+            //failed to connect to the pipe (error 101)
             if (hPipe == INVALID_HANDLE_VALUE) {
-                std::cout << "error 100: " << GetLastError() << "\n";
+                std::cerr << "error 101: " << GetLastError() << "\n";
                 return true;
             }
 
             std::string m = arguments[0]->GetStringValue();
-
-            std::cout << m << "\n";
-
             const char* msg = m.c_str();
             DWORD dwWritten;
             BOOL success = WriteFile(hPipe, msg, (DWORD)strlen(msg), &dwWritten, NULL);
 
-            //failed to send message trought pipe (error 101)
+            //failed to send message through pipe (error 102)
             if (!success) {
-                std::cout << "error 101: " << GetLastError() << "\n";
+                std::cerr << "error 102: " << GetLastError() << "\n";
                 CloseHandle(hPipe);
                 return true;
             }

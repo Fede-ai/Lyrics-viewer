@@ -21,7 +21,7 @@
     <ClInclude Include="cefapp.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cefhandler.hpp">
+    <ClInclude Include="cefclient.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="curlwrapper.hpp">
@@ -35,7 +35,7 @@
     <ClCompile Include="cefapp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cefhandler.cpp">
+    <ClCompile Include="cefclient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="curlwrapper.cpp">

@@ -112,13 +112,13 @@ endlocal</Command>
   <ItemGroup>
     <ClInclude Include="binding.hpp" />
     <ClInclude Include="cefapp.hpp" />
-    <ClInclude Include="cefhandler.hpp" />
+    <ClInclude Include="cefclient.hpp" />
     <ClInclude Include="curlwrapper.hpp" />
     <ClInclude Include="json.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cefapp.cpp" />
-    <ClCompile Include="cefhandler.cpp" />
+    <ClCompile Include="cefclient.cpp" />
     <ClCompile Include="curlwrapper.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>

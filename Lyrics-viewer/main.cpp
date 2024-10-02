@@ -1,5 +1,5 @@
-#include "curlwrapper.hpp"
 #include "cefapp.hpp"
+#include "curlwrapper.hpp"
 
 #pragma comment (lib, "dwmapi.lib")
 
@@ -17,7 +17,7 @@ void getAuthInfo(std::string& info)
 
     //wait for a client to connect
     if (ConnectNamedPipe(hPipe, NULL)) {
-        char buffer[1024];
+        char buffer[1024] = {};
         DWORD dwRead;
         if (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL)) {
             buffer[dwRead] = '\0'; //null terminate the string
@@ -31,6 +31,8 @@ void getAuthInfo(std::string& info)
 
     DisconnectNamedPipe(hPipe);
     CloseHandle(hPipe);
+
+    std::cout << info << "\n";
 }
 
 int main()
@@ -40,7 +42,7 @@ int main()
     std::string dir = std::string(buf).substr(0, std::string(buf).find_last_of('\\'));
 
     CefSettings settings;
-    settings.log_severity = LOGSEVERITY_DEBUG;
+    settings.log_severity = LOGSEVERITY_WARNING;
     settings.no_sandbox = true;
     settings.windowless_rendering_enabled = true;
     CefString(&settings.root_cache_path).FromASCII((dir + std::string("/cache")).c_str());
@@ -66,6 +68,7 @@ int main()
 
     //run the CEF message loop until CefQuitMessageLoop() is called
     CefRunMessageLoop();
+
     CefShutdown();
 
     getAuthInfoThread.join();

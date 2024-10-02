@@ -1,45 +1,38 @@
 #pragma once
+#include <SFML/Graphics.hpp>
 #include <iostream>
 #include "include/cef_client.h"
 
-class SimpleHandler : public CefClient,
+class SimpleClient : public CefClient,
     public CefRenderHandler,
-    public CefLifeSpanHandler,
-    public CefLoadHandler {
+    public CefLifeSpanHandler {
 public:
-    explicit SimpleHandler() {};
-    ~SimpleHandler() override {};
+    SimpleClient() {};
+    ~SimpleClient() override {};
 
     // CefClient methods:
     CefRefPtr<CefRenderHandler> GetRenderHandler() override { return this; }
     CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
-    CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
 
     // CefLifeSpanHandler methods:
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
     bool DoClose(CefRefPtr<CefBrowser> browser) override;
     void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
 
+    // CefRenderHandler methods:
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
-
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, 
         const RectList& dirtyRects, const void* buffer, int width, int height) override;
-
-    void OnAcceleratedPaint(CefRefPtr< CefBrowser > browser, PaintElementType type,
-        const RectList& dirtyRects, const CefAcceleratedPaintInfo& info) override {
-        std::cout << "PAINTTTTTTTTTTTTTTTTT\n";
-    }
-    
-
-    bool IsClosing() const { return is_closing_; }
+    bool GetScreenPoint(CefRefPtr<CefBrowser> browser, int viewX,
+        int viewY, int& screenX, int& screenY) override;
 
 private:
-    // Platform-specific implementation.
-    void PlatformTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title);
+    void handleWindow();
 
+    sf::Shader shaderBR;
+    sf::Vector2i size_ = sf::Vector2i(0, 0);
+    sf::RenderWindow window_;
     CefRefPtr<CefBrowser> browser_;
-    bool is_closing_ = false;
 
-    // Include the default reference counting implementation.
-    IMPLEMENT_REFCOUNTING(SimpleHandler);
+    IMPLEMENT_REFCOUNTING(SimpleClient);
 };

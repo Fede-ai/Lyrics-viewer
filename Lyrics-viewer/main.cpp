@@ -3,7 +3,7 @@
 
 #pragma comment (lib, "dwmapi.lib")
 
-void getAuthInfo(std::string& info) 
+void runOverlay(CefRefPtr<SimpleApp> app)
 {
     //create a named pipe
     HANDLE hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\MyNamedPipe"), PIPE_ACCESS_DUPLEX,
@@ -15,6 +15,7 @@ void getAuthInfo(std::string& info)
         return;
     }
 
+    std::string info = "";
     //wait for a client to connect
     if (ConnectNamedPipe(hPipe, NULL)) {
         char buffer[1024] = {};
@@ -33,6 +34,18 @@ void getAuthInfo(std::string& info)
     CloseHandle(hPipe);
 
     std::cout << info << "\n";
+
+    //failed to authenticate spotify (error 200)
+    if (info[0] == 'f') {
+        std::cerr << "error 200: " << info.substr(1, info.size()) << "\n";
+        return std::exit(200);
+    }
+
+    app->closeAuthWindows();
+
+    size_t sep = info.find_first_of('+');
+    std::string accessToken = info.substr(1, sep - 1);
+    std::string refreshToken = info.substr(sep + 1, info.size());
 }
 
 int main()
@@ -60,27 +73,17 @@ int main()
 
     //initialize the CEF browser process. may return false if initialization fails
     //or if early exit is desired (for example, due to process singleton relaunch behavior).
-    if (!CefInitialize(mainArgs, settings, app.get(), nullptr))
+    if (!CefInitialize(mainArgs, settings, app, nullptr))
         return CefGetExitCode();
 
-    std::string info;
-    std::thread getAuthInfoThread(getAuthInfo, std::ref(info));
+    std::thread runOverlayThread(runOverlay, app);
 
     //run the CEF message loop until CefQuitMessageLoop() is called
     CefRunMessageLoop();
 
     CefShutdown();
 
-    getAuthInfoThread.join();
-    //failed to authenticate spotify (error 200)
-    if (info[0] == 'f') {
-        std::cerr << "error 200: " << info.substr(1, info.size()) << "\n";
-        return 200;
-    }
-
-    size_t sep = info.find_first_of('+');
-    std::string accessToken = info.substr(1, sep - 1);
-    std::string refreshToken= info.substr(sep + 1, info.size());
+    runOverlayThread.join();
 
     //Request r = Request(Request::Methods::GET);
     //r.url = "https://api.spotify.com/v1/me";

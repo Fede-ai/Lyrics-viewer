@@ -16,23 +16,23 @@ body {
 
 .message {
 	font-weight: bold;
-	font-size: 2.5vw;
+	font-size: 6vw;
 	margin-bottom: 3vw;
 }
 
 .link {
 	font-weight: bold;
-	font-size: 2.5vw;
+	font-size: 6vw;
 	margin-bottom: 3vw;
 }
 
 .loader {
 	margin: auto;
-	border: 0.7vw solid #f3f3f3;
+	border: 1vw solid #f3f3f3;
 	border-top-color: #3498db;
 	border-radius: 50%;
-	width: 4vw;
-	height: 4vw;
+	width: 7vw;
+	height: 7vw;
 	animation: spin 2.5s ease-in-out infinite;
 }
 

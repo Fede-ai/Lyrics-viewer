@@ -13,36 +13,45 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="cef">
+      <UniqueIdentifier>{bbeec873-c2f6-4edf-90c7-a4db127b547b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="binding.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cefapp.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cefclient.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="curlwrapper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cefapp.hpp">
+      <Filter>cef</Filter>
+    </ClInclude>
+    <ClInclude Include="winlessclient.hpp">
+      <Filter>cef</Filter>
+    </ClInclude>
+    <ClInclude Include="binding.hpp">
+      <Filter>cef</Filter>
+    </ClInclude>
+    <ClInclude Include="authclient.hpp">
+      <Filter>cef</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="cefapp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cefclient.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="curlwrapper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="winlessclient.cpp">
+      <Filter>cef</Filter>
+    </ClCompile>
+    <ClCompile Include="cefapp.cpp">
+      <Filter>cef</Filter>
+    </ClCompile>
+    <ClCompile Include="authclient.cpp">
+      <Filter>cef</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

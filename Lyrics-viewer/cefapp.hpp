@@ -1,5 +1,6 @@
 #pragma once
-#include "cefclient.hpp"
+#include "winlessclient.hpp"
+#include "authclient.hpp"
 #include "include/cef_app.h"
 
 class SimpleApp : public CefApp, 
@@ -19,8 +20,17 @@ public:
     // CefBrowserProcessHandler methods:
     void OnContextInitialized() override;
 
+    //called when a new browser window is created via the Chrome runtime UI.
+    CefRefPtr<CefClient> GetDefaultClient() override {
+        std::cout << "NEW DEFAULT\n";
+        return new AuthClient();
+    }
+
+    void closeAuthWindows();
+
 private:
-    CefRefPtr<SimpleClient> client_;
+    CefRefPtr<WinlessClient> windowlessClient_;
+    CefRefPtr<AuthClient> authClient_;
 
     IMPLEMENT_REFCOUNTING(SimpleApp);
 };

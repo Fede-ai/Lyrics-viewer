@@ -110,15 +110,17 @@ endlocal</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="authclient.hpp" />
     <ClInclude Include="binding.hpp" />
     <ClInclude Include="cefapp.hpp" />
-    <ClInclude Include="cefclient.hpp" />
+    <ClInclude Include="winlessclient.hpp" />
     <ClInclude Include="curlwrapper.hpp" />
     <ClInclude Include="json.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="authclient.cpp" />
     <ClCompile Include="cefapp.cpp" />
-    <ClCompile Include="cefclient.cpp" />
+    <ClCompile Include="winlessclient.cpp" />
     <ClCompile Include="curlwrapper.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>

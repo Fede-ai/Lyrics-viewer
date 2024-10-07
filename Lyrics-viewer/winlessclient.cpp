@@ -9,7 +9,7 @@ void WinlessClient::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 
     browser_ = browser;
 
-    std::cout << "OnAfterCreated winless\n";
+    //std::cout << "OnAfterCreated winless\n";
 }
 
 bool WinlessClient::DoClose(CefRefPtr<CefBrowser> browser) 
@@ -20,7 +20,7 @@ bool WinlessClient::DoClose(CefRefPtr<CefBrowser> browser)
     // documentation in the CEF header for a detailed description of this
     // process.
 
-    std::cout << "DoClose winless\n";
+    //std::cout << "DoClose winless\n";
 
     // Allow the close. For windowed browsers this will result in the OS close
     // event being sent.
@@ -31,7 +31,7 @@ void WinlessClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
     CEF_REQUIRE_UI_THREAD();
 
-    std::cout << "OnBeforeClose winless\n";
+    //std::cout << "OnBeforeClose winless\n";
 }
 
 void WinlessClient::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)

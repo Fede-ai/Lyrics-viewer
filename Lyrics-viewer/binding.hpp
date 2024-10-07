@@ -60,8 +60,6 @@ public:
             std::string str = buffer;
             retval = CefV8Value::CreateString(buffer);
 
-            //std::cout << bytesRead << "\n";
-
             return true;
         }
 

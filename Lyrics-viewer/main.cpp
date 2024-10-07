@@ -39,19 +39,7 @@ int main()
 
     CefShutdown();
 
-    std::cout << "waiting for overlay to close...";
     runOverlayThread.join();
-
-    //Request r = Request(Request::Methods::GET);
-    //r.url = "https://api.spotify.com/v1/me";
-    //r.headers = { "Authorization: Bearer " + accessToken };
-    //std::cout << CurlWrapper::send(r).body;
-
-    //Request r = Request(Request::Methods::POST);
-    //r.url = "https://accounts.spotify.com/api/token";
-    //r.headers = { "Content-Type: application/x-www-form-urlencoded" };
-    //r.body = "grant_type=refresh_token&refresh_token=" + refreshToken + "&client_id=244ba241897d4c969d1260ad0c844f91";
-    //std::cout << CurlWrapper::send(r).body;
 
     return 0;
 }

@@ -79,11 +79,8 @@ else if (code) {
 		return await body.json();
 	}
 
-	getToken(code).then((response) => {
-		localStorage.setItem('access_token', response.access_token);
-		localStorage.setItem('refresh_token', response.refresh_token);
-
-		window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/success.html';
+	getToken(code).then((response) => {	
+		sendToCpp(`s${response.access_token}+${response.refresh_token}`);
 	}) 
 }
 //fail after sporify login

@@ -9,8 +9,6 @@ window.onSpotifyWebPlaybackSDKReady = () => {
 		token = getToken();
 	}
 
-	printCpp(`new token: ${token}`);
-
 	const player = new Spotify.Player({
 		name: 'Lyrics-viewer player',
 		getOAuthToken: cb => { cb(token); },

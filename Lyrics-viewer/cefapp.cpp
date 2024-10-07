@@ -158,7 +158,7 @@ void SimpleApp::closeAuthWindows()
 
 void SimpleApp::launchPlayerBrowser()
 {
-    std::string url = "http://localhost:8000/player.html";
+    std::string url = "http://fede-ai.github.io/Lyrics-viewer/player.html";
     CefBrowserSettings browserSettings;
 
     authClient_ = new AuthClient();

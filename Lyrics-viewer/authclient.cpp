@@ -28,7 +28,7 @@ void AuthClient::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 
     browsers_.push_back(browser);
     
-    std::cout << "OnAfterCreated auth, size = " << browsers_.size() << "\n";
+    //std::cout << "OnAfterCreated auth, size = " << browsers_.size() << "\n";
 }
 
 void AuthClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
@@ -42,7 +42,7 @@ void AuthClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
         }
     }
 
-    std::cout << "OnBeforeClose auth, size = " << browsers_.size() << "\n";
+    //std::cout << "OnBeforeClose auth, size = " << browsers_.size() << "\n";
 
     if (!isAuthenticated_)
         CefQuitMessageLoop();

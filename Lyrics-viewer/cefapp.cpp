@@ -4,6 +4,8 @@
 #include "include/wrapper/cef_helpers.h"
 #include "include/views/cef_browser_view.h"
 #include "include/views/cef_window.h"
+#include "include/base/cef_callback.h"
+#include "include/wrapper/cef_closure_task.h"
 
 namespace {
     //when using the Views framework this object provides the delegate
@@ -103,8 +105,14 @@ void SimpleApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFra
     CefRefPtr<CefV8Value> global = context->GetGlobal();
     CefRefPtr<SimpleV8Handler> handler = new SimpleV8Handler();
 
-    CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction("sendToCpp", handler);
-    global->SetValue("sendToCpp", func, V8_PROPERTY_ATTRIBUTE_NONE);
+    CefRefPtr<CefV8Value> func0 = CefV8Value::CreateFunction("sendToCpp", handler);
+    global->SetValue("sendToCpp", func0, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> func1 = CefV8Value::CreateFunction("getToken", handler);
+    global->SetValue("getToken", func1, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> func2 = CefV8Value::CreateFunction("printCpp", handler);
+    global->SetValue("printCpp", func2, V8_PROPERTY_ATTRIBUTE_NONE);
 }
 
 void SimpleApp::OnContextInitialized()
@@ -138,7 +146,27 @@ void SimpleApp::OnContextInitialized()
 
 void SimpleApp::closeAuthWindows()
 {
-    for (int i = 0; i < AuthClient::GetBrowsers().size(); i++) {
-        AuthClient::GetBrowsers()[i]->GetHost()->CloseBrowser(true);
+    //tell the client that it has been authenticated
+    AuthClient::authenticate();
+
+    for (int i = 0; i < AuthClient::getBrowsers().size(); i++) {
+        AuthClient::getBrowsers()[i]->GetHost()->CloseBrowser(true);
     }
+
+    CefPostTask(TID_UI, base::BindOnce(&SimpleApp::launchPlayerBrowser, this));
+}
+
+void SimpleApp::launchPlayerBrowser()
+{
+    std::string url = "http://localhost:8000/player.html";
+    CefBrowserSettings browserSettings;
+
+    authClient_ = new AuthClient();
+
+    //create the BrowserView.
+    CefRefPtr<CefBrowserView> browserView = CefBrowserView::CreateBrowserView(
+        authClient_, url, browserSettings, nullptr, nullptr, new SimpleBrowserViewDelegate());
+
+    //create the Window. it will show itself after creation.
+    CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browserView));
 }

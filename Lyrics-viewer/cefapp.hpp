@@ -29,6 +29,8 @@ public:
     void closeAuthWindows();
 
 private:
+    void launchPlayerBrowser();
+
     CefRefPtr<WinlessClient> windowlessClient_;
     CefRefPtr<AuthClient> authClient_;
 

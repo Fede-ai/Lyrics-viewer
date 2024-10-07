@@ -3,7 +3,7 @@
 #include <curl/curl.h>
 #include <iostream>
 
-//if error == "" than the message was sent successfully
+//if (error == "") than the message was sent successfully
 struct Response {	
 	Response() = default;
 	Response(std::string inError)
@@ -14,6 +14,7 @@ struct Response {
 
 	nlohmann::json toJson();
 
+	//if (error == "") than the message was sent successfully
 	std::string error = "";
 	long code = 0;
 	std::string body;

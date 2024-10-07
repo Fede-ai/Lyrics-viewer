@@ -36,6 +36,9 @@
     <ClInclude Include="authclient.hpp">
       <Filter>cef</Filter>
     </ClInclude>
+    <ClInclude Include="overlay.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="curlwrapper.cpp">
@@ -52,6 +55,9 @@
     </ClCompile>
     <ClCompile Include="authclient.cpp">
       <Filter>cef</Filter>
+    </ClCompile>
+    <ClCompile Include="overlay.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

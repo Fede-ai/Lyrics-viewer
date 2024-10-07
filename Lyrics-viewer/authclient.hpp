@@ -20,11 +20,15 @@ public:
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
     void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
 
-    static std::vector<CefRefPtr<CefBrowser>> GetBrowsers() {
+    static std::vector<CefRefPtr<CefBrowser>> getBrowsers() {
         return browsers_;
+    }
+    static void authenticate() {
+        isAuthenticated_ = true;
     }
 
 private:
+    static bool isAuthenticated_;
     static std::vector<CefRefPtr<CefBrowser>> browsers_;
 
     IMPLEMENT_REFCOUNTING(AuthClient);

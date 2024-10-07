@@ -1,52 +1,7 @@
-#include "cefapp.hpp"
+#include "overlay.hpp"
 #include "curlwrapper.hpp"
 
 #pragma comment (lib, "dwmapi.lib")
-
-void runOverlay(CefRefPtr<SimpleApp> app)
-{
-    //create a named pipe
-    HANDLE hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\MyNamedPipe"), PIPE_ACCESS_DUPLEX,
-        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 1024, 1024, 0, NULL);
-
-    //failed to create the pipe (error 100)
-    if (hPipe == INVALID_HANDLE_VALUE) {
-        std::cerr << "error 100: " << GetLastError() << "\n";
-        return;
-    }
-
-    std::string info = "";
-    //wait for a client to connect
-    if (ConnectNamedPipe(hPipe, NULL)) {
-        char buffer[1024] = {};
-        DWORD dwRead;
-        if (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL)) {
-            buffer[dwRead] = '\0'; //null terminate the string
-            info = buffer;
-        }
-        //failed to read the message (error 103)
-        else {
-            std::cerr << "error 103: " << GetLastError() << "\n";
-        }
-    }
-
-    DisconnectNamedPipe(hPipe);
-    CloseHandle(hPipe);
-
-    std::cout << info << "\n";
-
-    //failed to authenticate spotify (error 200)
-    if (info[0] == 'f') {
-        std::cerr << "error 200: " << info.substr(1, info.size()) << "\n";
-        return std::exit(200);
-    }
-
-    app->closeAuthWindows();
-
-    size_t sep = info.find_first_of('+');
-    std::string accessToken = info.substr(1, sep - 1);
-    std::string refreshToken = info.substr(sep + 1, info.size());
-}
 
 int main()
 {
@@ -76,13 +31,15 @@ int main()
     if (!CefInitialize(mainArgs, settings, app, nullptr))
         return CefGetExitCode();
 
-    std::thread runOverlayThread(runOverlay, app);
+    Overlay overlay(app);
+    std::thread runOverlayThread(&Overlay::run, overlay);
 
     //run the CEF message loop until CefQuitMessageLoop() is called
     CefRunMessageLoop();
 
     CefShutdown();
 
+    std::cout << "waiting for overlay to close...";
     runOverlayThread.join();
 
     //Request r = Request(Request::Methods::GET);

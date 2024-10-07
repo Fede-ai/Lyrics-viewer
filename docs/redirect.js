@@ -38,7 +38,7 @@ else if (!code && !error) {
 		return { codeVerifier, codeChallenge };
 	};
 	
-	const scopeValue = 'user-read-private user-read-email';
+	const scopeValue = 'user-read-private user-read-email streaming';
 	const authUrl = new URL('https://accounts.spotify.com/authorize');
 	
 	generateCodeVerifierAndChallenge().then(({ codeVerifier, codeChallenge }) => {
@@ -87,7 +87,7 @@ else if (code) {
 	}) 
 }
 //fail after sporify login
-else {
+else if (error) {
 	window.localStorage.setItem('error', error);
 	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/fail.html';
 }

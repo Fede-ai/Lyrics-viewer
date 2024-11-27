@@ -117,56 +117,51 @@ void SimpleApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFra
 
 void SimpleApp::OnContextInitialized()
 {
-    //CEF_REQUIRE_UI_THREAD();
-    //
-    //std::string url = "http://fede-ai.github.io/Lyrics-viewer/redirect.html";
-    //CefBrowserSettings browserSettings;
-    //
-    //CefWindowInfo windowInfo;
-    //windowInfo.SetAsWindowless(nullptr);
-    //
-    //client_ = new WinlessClient();
-    //CefBrowserHost::CreateBrowserSync(windowInfo, client_, url, browserSettings, nullptr, nullptr);
-
-
     CEF_REQUIRE_UI_THREAD();
 
     std::string url = "http://fede-ai.github.io/Lyrics-viewer/redirect.html";
     CefBrowserSettings browserSettings;
 
-    authClient_ = new AuthClient();
+    authClient_ = CefRefPtr(new AuthClient());
 
-    //create the BrowserView.
+    //create the BrowserView
     CefRefPtr<CefBrowserView> browserView = CefBrowserView::CreateBrowserView(
         authClient_, url, browserSettings, nullptr, nullptr, new SimpleBrowserViewDelegate());
 
-    //create the Window. it will show itself after creation.
+    //create the Window. it will show itself after creation
     CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browserView));
 }
 
-void SimpleApp::closeAuthWindows()
+void SimpleApp::closeAuthWindows(bool auth)
 {
     //tell the client that it has been authenticated
-    AuthClient::authenticate();
+    if (auth)
+        AuthClient::authenticate();
 
-    for (int i = 0; i < AuthClient::getBrowsers().size(); i++) {
+    for (int i = 0; i < AuthClient::getBrowsers().size(); i++) 
         AuthClient::getBrowsers()[i]->GetHost()->CloseBrowser(true);
-    }
 
-    CefPostTask(TID_UI, base::BindOnce(&SimpleApp::launchPlayerBrowser, this));
+    if (auth)
+        CefPostTask(TID_UI, base::BindOnce(&SimpleApp::launchPlayerBrowser, this));
+}
+
+void SimpleApp::closePlayerWindow()
+{
+    WinlessClient::getBrowser()->GetHost()->CloseBrowser(true);
 }
 
 void SimpleApp::launchPlayerBrowser()
 {
+    CEF_REQUIRE_UI_THREAD();
+
     std::string url = "http://fede-ai.github.io/Lyrics-viewer/player.html";
     CefBrowserSettings browserSettings;
 
-    authClient_ = new AuthClient();
+    CefWindowInfo windowInfo;
+    windowInfo.SetAsWindowless(nullptr);
 
-    //create the BrowserView.
-    CefRefPtr<CefBrowserView> browserView = CefBrowserView::CreateBrowserView(
-        authClient_, url, browserSettings, nullptr, nullptr, new SimpleBrowserViewDelegate());
+    windowlessClient_ = CefRefPtr(new WinlessClient());
 
-    //create the Window. it will show itself after creation.
-    CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browserView));
+    CefBrowserHost::CreateBrowserSync(windowInfo, windowlessClient_, 
+        url, browserSettings, nullptr, nullptr);
 }

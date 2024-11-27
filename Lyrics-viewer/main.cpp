@@ -1,5 +1,6 @@
 #include "overlay.hpp"
 #include "curlwrapper.hpp"
+#include <thread>
 
 #pragma comment (lib, "dwmapi.lib")
 
@@ -32,14 +33,22 @@ int main()
         return CefGetExitCode();
 
     Overlay overlay(app);
-    std::thread runOverlayThread(&Overlay::run, overlay);
+    std::thread runOverlayThread(&Overlay::run, &overlay);
 
     //run the CEF message loop until CefQuitMessageLoop() is called
     CefRunMessageLoop();
 
     CefShutdown();
+    std::cout << "cef has been shutdown\n";
 
-    runOverlayThread.join();
+    if (overlay.waitingAuth) {
+        std::cout << "detaching overlay thread (auth crashed)\n";
+        runOverlayThread.detach();
+    }
+    else {
+        std::cout << "waiting for overlay thread to join\n";
+        runOverlayThread.join();
+    }
 
     return 0;
 }

@@ -1,5 +1,6 @@
 #include "overlay.hpp"
 #include "curlwrapper.hpp"
+#include <thread>
 
 Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 	:
@@ -9,17 +10,20 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 
 void Overlay::run()
 {
-    getFirstToken();
+    if (!getFirstToken()) {
+        app_->closeAuthWindows(false);
+        return;
+    }
 
     std::thread shareThread(&Overlay::sendTokenToPlayer, this);
     shareThread.detach();
 
     sf::sleep(sf::seconds(0.2f));
-    app_->closeAuthWindows();
+    app_->closeAuthWindows(true);
 
-    while (true) {
-        sf::sleep(sf::seconds(10));
-    }
+    sf::sleep(sf::seconds(10));
+
+    app_->closePlayerWindow();
 
     //Request r = Request(Request::Methods::GET);
     //r.url = "https://api.spotify.com/v1/me";
@@ -33,7 +37,7 @@ void Overlay::run()
     //std::cout << CurlWrapper::send(r).body;
 }
 
-void Overlay::getFirstToken()
+bool Overlay::getFirstToken()
 {
     //create read-only named pipe
     HANDLE hPipe = CreateNamedPipeW(TEXT("\\\\.\\pipe\\firstToken"), PIPE_ACCESS_INBOUND,
@@ -63,16 +67,18 @@ void Overlay::getFirstToken()
 
     DisconnectNamedPipe(hPipe);
     CloseHandle(hPipe);
+    waitingAuth = false;
 
     //failed to authenticate spotify (error 200)
     if (info[0] == 'f') {
         std::cerr << "error 200: " << info.substr(1, info.size()) << "\n";
-        return;
+        return false;
     }
 
     size_t sep = info.find_first_of('+');
     accessToken_ = info.substr(1, sep - 1);
     refreshToken_ = info.substr(sep + 1, info.size());
+    return true;
 }
 
 void Overlay::sendTokenToPlayer()

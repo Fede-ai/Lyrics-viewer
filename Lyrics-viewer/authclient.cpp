@@ -42,8 +42,8 @@ void AuthClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
         }
     }
 
-    //std::cout << "OnBeforeClose auth, size = " << browsers_.size() << "\n";
+    std::cout << "OnBeforeClose auth, size = " << browsers_.size() << "\n";
 
-    if (!isAuthenticated_)
+    if (!isAuthenticated_ && browsers_.size() == 0)
         CefQuitMessageLoop();
 }

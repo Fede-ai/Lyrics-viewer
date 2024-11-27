@@ -26,7 +26,8 @@ public:
         return new AuthClient();
     }
 
-    void closeAuthWindows();
+    void closeAuthWindows(bool auth);
+    void closePlayerWindow();
 
 private:
     void launchPlayerBrowser();

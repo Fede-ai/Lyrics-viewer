@@ -7,8 +7,10 @@ public:
 	Overlay(CefRefPtr<SimpleApp> inApp);
 	void run();
 
+	bool waitingAuth = true;
+
 private:
-	void getFirstToken();
+	bool getFirstToken();
 	void sendTokenToPlayer();
 
 	CefRefPtr<SimpleApp> app_;

@@ -23,8 +23,12 @@ public:
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, 
         const RectList& dirtyRects, const void* buffer, int width, int height) override;
 
+    static CefRefPtr<CefBrowser> getBrowser() {
+        return browser_;
+    }
+
 private:
-    CefRefPtr<CefBrowser> browser_;
+    static CefRefPtr<CefBrowser> browser_;
 
     IMPLEMENT_REFCOUNTING(WinlessClient);
 };

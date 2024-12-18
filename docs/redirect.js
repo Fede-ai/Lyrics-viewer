@@ -38,7 +38,7 @@ else if (!code && !error) {
 		return { codeVerifier, codeChallenge };
 	};
 	
-	const scopeValue = 'user-read-private user-read-email streaming';
+	const scopeValue = 'user-modify-playback-state user-read-playback-state user-read-currently-playing';
 	const authUrl = new URL('https://accounts.spotify.com/authorize');
 	
 	generateCodeVerifierAndChallenge().then(({ codeVerifier, codeChallenge }) => {

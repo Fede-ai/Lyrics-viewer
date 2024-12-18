@@ -25,7 +25,7 @@ void Overlay::run()
     app_->closeAuthWindows(true);
 
     Request r = Request(Request::Methods::GET);
-    r.url = "https://api.spotify.com/v1/me";
+    r.url = "https://api.spotify.com/v1/me/player/currently-playing";
     r.headers = { "Authorization: Bearer " + accessToken_ };
     std::cout << CurlWrapper::send(r).body << "\n";
 

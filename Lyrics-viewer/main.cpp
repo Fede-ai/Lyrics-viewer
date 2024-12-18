@@ -41,10 +41,12 @@ int main()
     CefShutdown();
     std::cout << "cef has been shutdown\n";
 
-    if (overlay.waitingAuth) {
+    //shutdown overlay forcingly
+    if (overlay.isWaitingAuth()) {
         std::cout << "detaching overlay thread (auth crashed)\n";
         runOverlayThread.detach();
     }
+    //wait for overlay to close gracefully
     else {
         std::cout << "waiting for overlay thread to join\n";
         runOverlayThread.join();

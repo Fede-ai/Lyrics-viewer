@@ -9,8 +9,7 @@ struct Response {
 	Response(std::string inError)
 		:
 		error(inError)
-	{
-	}
+	{}
 
 	nlohmann::json toJson();
 
@@ -30,8 +29,7 @@ struct Request {
 	Request(Methods inMethod)
 		:
 		method(inMethod)
-	{
-	}
+	{}
 
 	Methods method = Methods::NONE;
 	std::string url = "";

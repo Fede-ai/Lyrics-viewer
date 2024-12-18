@@ -27,7 +27,7 @@ public:
     }
 
     void closeAuthWindows(bool auth);
-    void closePlayerWindow();
+    void closePlayerBrowser();
 
 private:
     void launchPlayerBrowser();

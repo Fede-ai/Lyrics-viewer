@@ -10,31 +10,38 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 
 void Overlay::run()
 {
+    //if auth failed, close window withou launching player
     if (!getFirstToken()) {
         app_->closeAuthWindows(false);
         return;
     }
 
+    //continuosly run the thread to send the token to the player
     std::thread shareThread(&Overlay::sendTokenToPlayer, this);
     shareThread.detach();
 
+    //close auth an launch player
     sf::sleep(sf::seconds(0.2f));
     app_->closeAuthWindows(true);
 
-    sf::sleep(sf::seconds(10));
+    Request r = Request(Request::Methods::GET);
+    r.url = "https://api.spotify.com/v1/me";
+    r.headers = { "Authorization: Bearer " + accessToken_ };
+    std::cout << CurlWrapper::send(r).body << "\n";
 
-    app_->closePlayerWindow();
-
-    //Request r = Request(Request::Methods::GET);
-    //r.url = "https://api.spotify.com/v1/me";
-    //r.headers = { "Authorization: Bearer " + accessToken };
-    //std::cout << CurlWrapper::send(r).body;
+    //close player and shutdown cef
+    app_->closePlayerBrowser();
     
     //Request r = Request(Request::Methods::POST);
     //r.url = "https://accounts.spotify.com/api/token";
     //r.headers = { "Content-Type: application/x-www-form-urlencoded" };
     //r.body = "grant_type=refresh_token&refresh_token=" + refreshToken + "&client_id=244ba241897d4c969d1260ad0c844f91";
     //std::cout << CurlWrapper::send(r).body;
+}
+
+bool Overlay::isWaitingAuth() const
+{
+    return waitingAuth_;
 }
 
 bool Overlay::getFirstToken()
@@ -67,7 +74,7 @@ bool Overlay::getFirstToken()
 
     DisconnectNamedPipe(hPipe);
     CloseHandle(hPipe);
-    waitingAuth = false;
+    waitingAuth_ = false;
 
     //failed to authenticate spotify (error 200)
     if (info[0] == 'f') {
@@ -81,7 +88,7 @@ bool Overlay::getFirstToken()
     return true;
 }
 
-void Overlay::sendTokenToPlayer()
+void Overlay::sendTokenToPlayer() const
 {
     //create write-only named pipe
     HANDLE hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\shareToken"), PIPE_ACCESS_DUPLEX,

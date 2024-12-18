@@ -114,7 +114,6 @@ void SimpleApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFra
     CefRefPtr<CefV8Value> func2 = CefV8Value::CreateFunction("printCpp", handler);
     global->SetValue("printCpp", func2, V8_PROPERTY_ATTRIBUTE_NONE);
 }
-
 void SimpleApp::OnContextInitialized()
 {
     CEF_REQUIRE_UI_THREAD();
@@ -128,7 +127,7 @@ void SimpleApp::OnContextInitialized()
     CefRefPtr<CefBrowserView> browserView = CefBrowserView::CreateBrowserView(
         authClient_, url, browserSettings, nullptr, nullptr, new SimpleBrowserViewDelegate());
 
-    //create the Window. it will show itself after creation
+    //create the window
     CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browserView));
 }
 
@@ -141,27 +140,34 @@ void SimpleApp::closeAuthWindows(bool auth)
     for (int i = 0; i < AuthClient::getBrowsers().size(); i++) 
         AuthClient::getBrowsers()[i]->GetHost()->CloseBrowser(true);
 
+    //launch the player on the ui thread
     if (auth)
         CefPostTask(TID_UI, base::BindOnce(&SimpleApp::launchPlayerBrowser, this));
 }
-
-void SimpleApp::closePlayerWindow()
+void SimpleApp::closePlayerBrowser()
 {
-    WinlessClient::getBrowser()->GetHost()->CloseBrowser(true);
+    CefPostTask(TID_UI, base::BindOnce([]() {
+        CefQuitMessageLoop();
+        }));
+
+    //WinlessClient::getBrowser()->GetHost()->CloseBrowser(true);
 }
 
 void SimpleApp::launchPlayerBrowser()
 {
-    CEF_REQUIRE_UI_THREAD();
+    //TO DO: FIND OUT WHY THIS FUCKING CRASHES
 
-    std::string url = "http://fede-ai.github.io/Lyrics-viewer/player.html";
-    CefBrowserSettings browserSettings;
-
-    CefWindowInfo windowInfo;
-    windowInfo.SetAsWindowless(nullptr);
-
-    windowlessClient_ = CefRefPtr(new WinlessClient());
-
-    CefBrowserHost::CreateBrowserSync(windowInfo, windowlessClient_, 
-        url, browserSettings, nullptr, nullptr);
+    //CEF_REQUIRE_UI_THREAD();
+    //
+    //std::string url = "http://fede-ai.github.io/Lyrics-viewer/player.html";
+    //CefBrowserSettings browserSettings;
+    //browserSettings.windowless_frame_rate = 1;
+    //
+    //CefWindowInfo windowInfo;
+    //windowInfo.SetAsWindowless(nullptr);
+    //
+    //windowlessClient_ = CefRefPtr(new WinlessClient());
+    //
+    //CefBrowserHost::CreateBrowserSync(windowInfo, windowlessClient_, 
+    //    url, browserSettings, nullptr, nullptr);
 }

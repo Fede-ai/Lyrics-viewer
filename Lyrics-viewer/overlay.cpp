@@ -1,5 +1,7 @@
 #include "overlay.hpp"
 #include "curlwrapper.hpp"
+#include <dwmapi.h>
+#include <Windows.h>
 #include <thread>
 
 Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
@@ -10,28 +12,58 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 
 void Overlay::run()
 {
-    //if auth failed, close window withou launching player
+    //if auth failed, close window without launching player
     if (!getFirstToken()) {
         app_->closeAuthWindows(false);
         return;
     }
 
-    //continuosly run the thread to send the token to the player
+    //run the thread to send the token to the player
     std::thread shareThread(&Overlay::sendTokenToPlayer, this);
     shareThread.detach();
+	//run the thread to check for song changes
+	std::thread songChangeThread(&Overlay::handleSongChange, this);
+	songChangeThread.detach();
 
-    //close auth an launch player
+    //close auth and launch player
     sf::sleep(sf::seconds(0.2f));
     app_->closeAuthWindows(true);
 
-    Request r = Request(Request::Methods::GET);
-    r.url = "https://api.spotify.com/v1/me/player/currently-playing";
-    r.headers = { "Authorization: Bearer " + accessToken_ };
-    std::cout << CurlWrapper::send(r).body << "\n";
+	//create the window
+    float width = sf::VideoMode::getDesktopMode().width / 4.f;
+    const sf::VideoMode vm(int(width), int(width * .6f));
+	w_.create(vm, "Lyrics Viewer", sf::Style::None);
+	w_.setFramerateLimit(60);
+	w_.setKeyRepeatEnabled(false);
+
+	//set window style to borderless
+    MARGINS margins;
+    margins.cxLeftWidth = -1;
+    SetWindowLong(w_.getSystemHandle(), GWL_STYLE, WS_POPUP | WS_VISIBLE);
+
+	//move window to the top left corner
+    DwmExtendFrameIntoClientArea(w_.getSystemHandle(), &margins);
+    const int tlDist = int(width / 20.f);
+    SetWindowPos(w_.getSystemHandle(), HWND_TOPMOST, tlDist, tlDist,
+        0, 0, SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
+
+	drawOverlay();
+	while (w_.isOpen()) {
+		sf::Event e;
+		if (w_.waitEvent(e)) {
+			if (handleEvent(e))
+                drawOverlay(); 
+		}
+	}
 
     //close player and shutdown cef
     app_->closePlayerBrowser();
     
+    //Request r = Request(Request::Methods::GET);
+    //r.url = "https://api.spotify.com/v1/me/player/currently-playing";
+    //r.headers = { "Authorization: Bearer " + accessToken_ };
+    //std::cout << CurlWrapper::send(r).toJson()["item"]["name"] << "\n";
+
     //Request r = Request(Request::Methods::POST);
     //r.url = "https://accounts.spotify.com/api/token";
     //r.headers = { "Content-Type: application/x-www-form-urlencoded" };
@@ -39,9 +71,44 @@ void Overlay::run()
     //std::cout << CurlWrapper::send(r).body;
 }
 
-bool Overlay::isWaitingAuth() const
+bool Overlay::handleEvent(sf::Event e)
 {
-    return waitingAuth_;
+	if (e.type == sf::Event::Closed) {
+		w_.close();
+		return false;
+	}
+
+    return false;
+}
+void Overlay::drawOverlay()
+{
+    std::cout << "redrawing overlay\n";
+
+    w_.clear(sf::Color::Transparent);
+
+    sf::VertexArray bg(sf::TriangleFan, 1);
+	bg[0].position = sf::Vector2f(w_.getSize().x / 2.f, w_.getSize().y / 2.f);
+	bg[0].color = sf::Color(50, 50, 50, 200);
+    const int r = 20, n = 7;
+	for (int i = 0; i < 4 * n + 1; i++) {
+        sf::Vertex v({}, bg[0].color);
+        if (i < n || i == n * 4)
+            v.position = sf::Vector2f(w_.getSize().x - float(r), w_.getSize().y - float(r));
+        else if (i < n * 2)
+            v.position = sf::Vector2f(float(r), w_.getSize().y - float(r));
+        else if (i < n * 3)
+            v.position = sf::Vector2f(float(r), float(r));
+        else
+            v.position = sf::Vector2f(w_.getSize().x - float(r), float(r));
+
+        float ang = 90 * (i % n) / float(n - 1) + 90.f * int(float(i) / n);
+        v.position.x += float(r * std::cos(ang * 3.14159 / 180.f));
+        v.position.y += float(r * std::sin(ang * 3.14159 / 180.f));
+		bg.append(v);
+	}
+	w_.draw(bg);
+
+    w_.display();
 }
 
 bool Overlay::getFirstToken()
@@ -115,5 +182,78 @@ void Overlay::sendTokenToPlayer() const
             sf::sleep(sf::seconds(0.2f));
         }
         DisconnectNamedPipe(hPipe);
+    }
+}
+void Overlay::handleSongChange()
+{   
+    //replace ' ' with '+'
+	const auto format = [](std::string s) {
+		for (size_t i = 0; i < s.size(); i++)
+			s[i] = (s[i] == ' ') ? '+' : s[i];
+
+		return s;
+    };
+
+    Request req = Request(Request::Methods::GET);
+    req.url = "https://api.spotify.com/v1/me/player/currently-playing";
+
+    while (true) {
+        req.headers = { "Authorization: Bearer " + accessToken_ };
+		auto res = CurlWrapper::send(req);
+
+        //no song playing
+		if (res.code == 204) {
+            currentSong_ = "No Song";
+            sf::sleep(sf::seconds(2));
+			continue;
+		}
+        //some other error
+		else if (res.code != 200) {
+			std::cout << "ERROR (song change): " << res.code << "\n";
+            sf::sleep(sf::seconds(2));
+            continue;
+		}
+
+		auto json = res.toJson();
+        //new song detected
+        if (json["item"]["name"] != currentSong_) {
+		    currentSong_ = json["item"]["name"];
+
+			Request lReq = Request(Request::Methods::GET);
+            lReq.url = "https://lrclib.net/api/get?track_name=" + format(currentSong_) + 
+                "&artist_name=" + format(json["item"]["artists"][0]["name"]) + 
+                "&duration=" + std::to_string(int(json["item"]["duration_ms"] / 1000));
+
+			res = CurlWrapper::send(lReq);
+			if (res.code != 200)
+                currentLyrics_ = { {"No Lyrics", 0} };
+			//process raw lyrics
+            else {
+                std::istringstream stream(std::string(res.toJson()["syncedLyrics"]));
+                std::string line;
+                while (std::getline(stream, line)) {
+                    if (line.empty()) 
+                        continue;
+
+					size_t time = size_t(60'000 * std::stoi(line.substr(1, line.find_first_of(':'))));
+					line = line.substr(line.find_first_of(':') + 1, line.size());
+					time += size_t(1'000 * std::stoi(line.substr(0, line.find_first_of('.'))));
+					line = line.substr(line.find_first_of('.') + 1, line.size());
+					time += size_t(10 * std::stoi(line.substr(0, line.find_first_of(']'))));
+					line = line.substr(line.find_first_of(']') + 2, line.size());
+
+					currentLyrics_.push_back({ line, time });
+                }
+            }
+
+            std::cout << "lyrics fetched\n";
+        }
+
+		timestamp_ = json["timestamp"];
+		progressMs_ = json["progress_ms"];
+		isPlaying = json["is_playing"];
+
+        //sleep before checking again
+        sf::sleep(sf::seconds(2));
     }
 }

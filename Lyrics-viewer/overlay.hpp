@@ -22,6 +22,8 @@ private:
 	void sendTokenToPlayer() const;
 	//on its own thread
 	void handleSongChange();
+	//on its own thread
+	void scrollLyrics();
 
 	CefRefPtr<SimpleApp> app_;
 	sf::RenderWindow w_;
@@ -30,9 +32,11 @@ private:
 	std::string refreshToken_ = "";
 
 	std::string currentSong_ = "";
-	size_t timestamp_ = 0;
-	size_t progressMs_ = 0;
+	size_t progress_ = 0;
 	bool isPlaying = false;
 
-	std::vector<Line> currentLyrics_;
+	std::vector<Line> currentLyrics_ = { {"No Lyrics", 0} };
+	size_t currentLine_ = 0;
+
+	sf::Font font_;
 };

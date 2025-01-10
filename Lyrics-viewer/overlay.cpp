@@ -8,7 +8,20 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 	:
 	app_(inApp)
 {
-    font_.loadFromFile("C:/Users/feder/Desktop/Averia_Sans_Libre/AveriaSansLibre-Bold.ttf");
+    float width = sf::VideoMode::getDesktopMode().width / 4.f;
+	wSize_ = sf::Vector2i(int(width), int(width * .6f));
+
+    titleBar_ = sf::FloatRect(12, 12, wSize_.x - float(12 + 35), 25);
+	background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
+
+    font_.loadFromFile("resources/AveriaSansLibre-Bold.ttf");
+
+	closeTexture_.loadFromFile("resources/close.png");
+    closeTexture_.setSmooth(true);
+	closeSprite_.setTexture(closeTexture_);
+    closeSprite_.setColor(sf::Color(150, 150, 150, 100));
+    closeSprite_.setScale(0.03f, 0.03f);
+    closeSprite_.setPosition(wSize_.x - 27.f, 10.f);
 }
 
 void Overlay::run()
@@ -19,15 +32,15 @@ void Overlay::run()
         return;
     }
 
+    //ATTENTION not needed since right now the browser is not playing the music
     //run the thread to send the token to the player
-    std::thread shareThread(&Overlay::sendTokenToPlayer, this);
-    shareThread.detach();
+    //std::thread shareThread(&Overlay::sendTokenToPlayer, this);
+    //shareThread.detach();
+
 	//run the thread to check for song changes
 	std::thread songChangeThread(&Overlay::handleSongChange, this);
-	songChangeThread.detach();
 	//run the thread to scroll the lyrics
 	std::thread scrollThread(&Overlay::scrollLyrics, this);
-	scrollThread.detach();
 
     //close auth and launch player
     sf::sleep(sf::seconds(0.2f));
@@ -39,9 +52,9 @@ void Overlay::run()
     app_->closePlayerBrowser();
 
 	//create the window
-    float width = sf::VideoMode::getDesktopMode().width / 4.f;
-    const sf::VideoMode vm(int(width), int(width * .6f));
-	w_.create(vm, "Lyrics Viewer", sf::Style::None);
+    sf::ContextSettings settings;
+    settings.antialiasingLevel = 8;
+	w_.create(sf::VideoMode(wSize_.x, wSize_.y), "Lyrics Viewer", sf::Style::None, settings);
 	w_.setFramerateLimit(60);
 	w_.setKeyRepeatEnabled(false);
 
@@ -52,8 +65,7 @@ void Overlay::run()
 
 	//move window to the top left corner
     DwmExtendFrameIntoClientArea(w_.getSystemHandle(), &margins);
-    const int tlDist = int(width / 20.f);
-    SetWindowPos(w_.getSystemHandle(), HWND_TOPMOST, tlDist, tlDist,
+    SetWindowPos(w_.getSystemHandle(), HWND_TOPMOST, 15, 15,
         0, 0, SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
 
 	drawOverlay();
@@ -64,6 +76,10 @@ void Overlay::run()
                 drawOverlay(); 
 		}
 	}
+
+    isRunning = false;
+    songChangeThread.join();
+    scrollThread.join();
     
     //Request r = Request(Request::Methods::POST);
     //r.url = "https://accounts.spotify.com/api/token";
@@ -73,50 +89,96 @@ void Overlay::run()
 
 bool Overlay::handleEvent(sf::Event e)
 {
-	if (e.type == sf::Event::Closed) {
-		w_.close();
-		return false;
+    if (e.type == sf::Event::MouseMoved) {
+        if (startMousePos_.x != -1)
+            w_.setPosition(startWinPos_ - startMousePos_ + sf::Mouse::getPosition());
+
+        //make the close button red
+        if (closeSprite_.getGlobalBounds().contains(float(e.mouseMove.x), float(e.mouseMove.y))) {
+            if (closeSprite_.getColor() != sf::Color(230, 30, 30, 160)) {
+                closeSprite_.setColor(sf::Color(230, 30, 30, 160));
+                return true;
+            }
+        }
+		//make the close button gray
+        else if (closeSprite_.getColor() != sf::Color(150, 150, 150, 100)) {
+            closeSprite_.setColor(sf::Color(150, 150, 150, 100));
+            return true;
+        }
+    }
+    else if (e.type == sf::Event::MouseLeft) {
+	    //make the close button gray
+        if (closeSprite_.getColor() != sf::Color(150, 150, 150, 100)) {
+            closeSprite_.setColor(sf::Color(150, 150, 150, 100));
+            return true;
+        }
+    }
+    else if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left) {
+		//close the window
+        if (closeSprite_.getGlobalBounds().contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
+			w_.close();
+            return true;
+        }
+        //start moving
+        else if (titleBar_.contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
+            startMousePos_ = sf::Mouse::getPosition();
+            startWinPos_ = w_.getPosition();
+            return false;
+        }
 	}
+    else if (e.type == sf::Event::MouseButtonReleased && e.mouseButton.button == sf::Mouse::Left) {
+        startMousePos_ = sf::Vector2i(-1, -1);
+    }
 
     return false;
 }
 void Overlay::drawOverlay()
 {
-    const auto drawRect = [this]() {
+    const auto buildRect = [](sf::FloatRect fr, float r, int n, sf::Color c) {
+		auto p = fr.getPosition();
+		auto s = fr.getSize();
 
+        sf::VertexArray rect(sf::TriangleFan, 1);
+        rect[0].position = { (p.x + s.x) / 2.f, (p.y + s.y) / 2.f };
+        rect[0].color = c;
 
+        for (int i = 0; i < 4 * n + 1; i++) {
+            sf::Vertex v({}, c);
+            if (i < n || i == n * 4)
+                v.position = sf::Vector2f(p.x + s.x - r, p.y + s.y - r);
+            else if (i < n * 2)
+                v.position = sf::Vector2f(p.x + r, p.y + s.y - r);
+            else if (i < n * 3)
+                v.position = sf::Vector2f(p.x + r, p.y + r);
+            else
+                v.position = sf::Vector2f(p.x + s.x - r, p.y + r);
+
+            float ang = 90 * (i % n) / float(n - 1) + 90.f * int(float(i) / n);
+            v.position.x += float(r * std::cos(ang * 3.14159 / 180.f));
+            v.position.y += float(r * std::sin(ang * 3.14159 / 180.f));
+            rect.append(v);
+        }
+
+        return rect;
     };
 
     std::cout << "redrawing overlay\n";
     w_.setActive(true);
     w_.clear(sf::Color::Transparent);
 
-    sf::VertexArray bg(sf::TriangleFan, 1);
-	bg[0].position = sf::Vector2f(w_.getSize().x / 2.f, w_.getSize().y / 2.f);
-	bg[0].color = sf::Color(50, 50, 50, 200);
-    const int r = 20, n = 7;
-	for (int i = 0; i < 4 * n + 1; i++) {
-        sf::Vertex v({}, bg[0].color);
-        if (i < n || i == n * 4)
-            v.position = sf::Vector2f(w_.getSize().x - float(r), w_.getSize().y - float(r));
-        else if (i < n * 2)
-            v.position = sf::Vector2f(float(r), w_.getSize().y - float(r));
-        else if (i < n * 3)
-            v.position = sf::Vector2f(float(r), float(r));
-        else
-            v.position = sf::Vector2f(w_.getSize().x - float(r), float(r));
+    w_.draw(buildRect(background_, 20, 7, sf::Color(50, 50, 50, 200)));
+    w_.draw(buildRect(titleBar_, 10, 7, sf::Color(150, 150, 150, 100)));
 
-        float ang = 90 * (i % n) / float(n - 1) + 90.f * int(float(i) / n);
-        v.position.x += float(r * std::cos(ang * 3.14159 / 180.f));
-        v.position.y += float(r * std::sin(ang * 3.14159 / 180.f));
-		bg.append(v);
-	}
-	w_.draw(bg);
+    sf::Text title(currentSong_, font_, 14);
+    title.setPosition(20, 15);
+    w_.draw(title);
+
+	w_.draw(closeSprite_);
 
 	sf::Text l(currentLyrics_[currentLine_].first, font_, 20);
 	l.setFillColor(sf::Color::White);
-	l.setPosition(w_.getSize().x / 2.f - l.getGlobalBounds().width / 2.f, 
-        w_.getSize().y / 2.f - l.getGlobalBounds().height / 2.f);
+    l.setOrigin(l.getGlobalBounds().width / 2.f, l.getGlobalBounds().height / 2.f);
+	l.setPosition(w_.getSize().x / 2.f, w_.getSize().y / 2.f);
 	w_.draw(l);
 
     w_.display();
@@ -209,7 +271,7 @@ void Overlay::handleSongChange()
     Request req = Request(Request::Methods::GET);
     req.url = "https://api.spotify.com/v1/me/player/currently-playing";
 
-    while (true) {
+    while (isRunning) {
         req.headers = { "Authorization: Bearer " + accessToken_ };
 		auto res = CurlWrapper::send(req);
 
@@ -227,26 +289,37 @@ void Overlay::handleSongChange()
 		}
 
 		auto json = res.toJson();
+
+        if (json["currently_playing_type"] != "track") {
+            currentSong_ = json["currently_playing_type"];
+            currentLyrics_ = { {"No Lyrics For This Type Of Content", 0} };
+            progress_ = 0, duration_ = 0;
+            currentLine_ = 0;
+
+            sf::sleep(sf::seconds(2));
+            continue;
+        }
+
         //new song detected
         if (json["item"]["name"] != currentSong_) {
 		    currentSong_ = json["item"]["name"];
+            currentLine_ = 0;
+            duration_ = json["item"]["duration_ms"];
 
+            //request lyrics from LRCLIB
 			Request lReq = Request(Request::Methods::GET);
             lReq.url = "https://lrclib.net/api/get?track_name=" + format(currentSong_) + 
                 "&artist_name=" + format(json["item"]["artists"][0]["name"]) + 
                 "&duration=" + std::to_string(int(json["item"]["duration_ms"] / 1000));
-
+            std::cout << lReq.url << "\n";
 			res = CurlWrapper::send(lReq);
+
 			//no lyrics found
-            if (res.code != 200 || res.toJson()["syncedLyrics"].is_null()) {
+            if (res.code != 200 || res.toJson()["syncedLyrics"].is_null())
                 currentLyrics_ = { { "No Lyrics", 0 } };
-                currentLine_ = 0;
-            }
 			//process raw lyrics
             else {
                 currentLyrics_ = { { "", 0 } };
-                currentLine_ = 0;
-
                 std::istringstream stream(std::string(res.toJson()["syncedLyrics"]));
                 std::string line;
                 while (std::getline(stream, line)) {
@@ -258,18 +331,20 @@ void Overlay::handleSongChange()
 					time += size_t(1'000 * std::stoi(line.substr(0, line.find_first_of('.'))));
 					line = line.substr(line.find_first_of('.') + 1, line.size());
 					time += size_t(10 * std::stoi(line.substr(0, line.find_first_of(']'))));
-					line = line.substr(line.find_first_of(']') + 2, line.size());
+					line = line.substr(line.find_first_of(']') + 1, line.size());
+
+                    if (line[0] == ' ')
+                        line = line.substr(1, line.size());
 
 					currentLyrics_.push_back({ line, std::max(0, int(time) - 800) });
                 }
             }
 
-            std::cout << "lyrics fetched\n";
             drawOverlay();
         }
 
 		progress_ = json["progress_ms"];
-		isPlaying = json["is_playing"];
+		isPlaying_ = json["is_playing"];
 
         //sleep before checking again
         sf::sleep(sf::seconds(2));
@@ -277,7 +352,7 @@ void Overlay::handleSongChange()
 }
 void Overlay::scrollLyrics()
 {
-	while (true) {
+	while (isRunning) {
         //the lyrics are empty
 		if (currentLyrics_.size() == 1) {
 			currentLine_ = 0;
@@ -289,8 +364,10 @@ void Overlay::scrollLyrics()
 		while (i < currentLyrics_.size() && currentLyrics_[i].second < progress_)
 			i++;
 
-        if (i == 0)
-			std::cout << "UNKNOWN ERROR\n";
+        if (i == 0) {
+			std::cout << "LINE COUNTING ERROR\n";
+            std::exit(-1);
+        }
 
         if (i - 1 != currentLine_) {
 			currentLine_ = i - 1;

@@ -15,13 +15,22 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 	background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
 
     font_.loadFromFile("resources/AveriaSansLibre-Bold.ttf");
-
 	closeTexture_.loadFromFile("resources/close.png");
-    closeTexture_.setSmooth(true);
+    lockOpenTexture_.loadFromFile("resources/lock_open.png");
+    lockCloseTexture_.loadFromFile("resources/lock_close.png");
+    volumeTexture_.loadFromFile("resources/volume.png");;
+
 	closeSprite_.setTexture(closeTexture_);
-    closeSprite_.setColor(sf::Color(150, 150, 150, 100));
-    closeSprite_.setScale(0.03f, 0.03f);
+    closeSprite_.setColor(lightGray);
     closeSprite_.setPosition(wSize_.x - 27.f, 10.f);
+
+    lockSprite_.setTexture(lockOpenTexture_);
+    lockSprite_.setColor(lightGray);
+    lockSprite_.setPosition(wSize_.x - 27.f, 33.f);
+
+    volumeSprite_.setTexture(volumeTexture_);
+    volumeSprite_.setColor(lightGray);
+    volumeSprite_.setPosition(wSize_.x - 27.f, 56.f);
 }
 
 void Overlay::run()
@@ -36,11 +45,6 @@ void Overlay::run()
     //run the thread to send the token to the player
     //std::thread shareThread(&Overlay::sendTokenToPlayer, this);
     //shareThread.detach();
-
-	//run the thread to check for song changes
-	std::thread songChangeThread(&Overlay::handleSongChange, this);
-	//run the thread to scroll the lyrics
-	std::thread scrollThread(&Overlay::scrollLyrics, this);
 
     //close auth and launch player
     sf::sleep(sf::seconds(0.2f));
@@ -57,6 +61,7 @@ void Overlay::run()
 	w_.create(sf::VideoMode(wSize_.x, wSize_.y), "Lyrics Viewer", sf::Style::None, settings);
 	w_.setFramerateLimit(60);
 	w_.setKeyRepeatEnabled(false);
+    w_.setActive(false);
 
 	//set window style to borderless
     MARGINS margins;
@@ -69,6 +74,11 @@ void Overlay::run()
         0, 0, SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
 
 	drawOverlay();
+    //run the thread to check for song changes
+    std::thread songChangeThread(&Overlay::handleSongChange, this);
+    //run the thread to scroll the lyrics
+    std::thread scrollThread(&Overlay::scrollLyrics, this);
+
 	while (w_.isOpen()) {
 		sf::Event e;
 		if (w_.waitEvent(e)) {
@@ -95,21 +105,21 @@ bool Overlay::handleEvent(sf::Event e)
 
         //make the close button red
         if (closeSprite_.getGlobalBounds().contains(float(e.mouseMove.x), float(e.mouseMove.y))) {
-            if (closeSprite_.getColor() != sf::Color(230, 30, 30, 160)) {
-                closeSprite_.setColor(sf::Color(230, 30, 30, 160));
+            if (closeSprite_.getColor() != redClose) {
+                closeSprite_.setColor(redClose);
                 return true;
             }
         }
 		//make the close button gray
-        else if (closeSprite_.getColor() != sf::Color(150, 150, 150, 100)) {
-            closeSprite_.setColor(sf::Color(150, 150, 150, 100));
+        else if (closeSprite_.getColor() != lightGray) {
+            closeSprite_.setColor(lightGray);
             return true;
         }
     }
     else if (e.type == sf::Event::MouseLeft) {
 	    //make the close button gray
-        if (closeSprite_.getColor() != sf::Color(150, 150, 150, 100)) {
-            closeSprite_.setColor(sf::Color(150, 150, 150, 100));
+        if (closeSprite_.getColor() != lightGray) {
+            closeSprite_.setColor(lightGray);
             return true;
         }
     }
@@ -162,18 +172,21 @@ void Overlay::drawOverlay()
         return rect;
     };
 
-    std::cout << "redrawing overlay\n";
+    mutex_.lock();
     w_.setActive(true);
     w_.clear(sf::Color::Transparent);
+    std::cout << "redrawing overlay\n";
 
     w_.draw(buildRect(background_, 20, 7, sf::Color(50, 50, 50, 200)));
-    w_.draw(buildRect(titleBar_, 10, 7, sf::Color(150, 150, 150, 100)));
+    w_.draw(buildRect(titleBar_, 10, 7, lightGray));
 
     sf::Text title(currentSong_, font_, 14);
     title.setPosition(20, 15);
     w_.draw(title);
 
 	w_.draw(closeSprite_);
+    w_.draw(lockSprite_);
+    w_.draw(volumeSprite_);
 
 	sf::Text l(currentLyrics_[currentLine_].first, font_, 20);
 	l.setFillColor(sf::Color::White);
@@ -183,6 +196,7 @@ void Overlay::drawOverlay()
 
     w_.display();
     w_.setActive(false);
+    mutex_.unlock();
 }
 
 bool Overlay::getFirstToken()
@@ -336,7 +350,7 @@ void Overlay::handleSongChange()
                     if (line[0] == ' ')
                         line = line.substr(1, line.size());
 
-					currentLyrics_.push_back({ line, std::max(0, int(time) - 800) });
+					currentLyrics_.push_back({ line, std::max(0, int(time) - 650) });
                 }
             }
 

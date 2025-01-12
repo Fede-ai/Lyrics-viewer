@@ -8,7 +8,7 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 	:
 	app_(inApp)
 {
-    float width = sf::VideoMode::getDesktopMode().width / 4.f;
+    float width = sf::VideoMode::getDesktopMode().width / 3.8f;
 	wSize_ = sf::Vector2i(int(width), int(width * .6f));
 
     titleBar_ = sf::FloatRect(12, 12, wSize_.x - float(12 + 35), 25);
@@ -21,15 +21,15 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
     volumeTexture_.loadFromFile("resources/volume.png");;
 
 	closeSprite_.setTexture(closeTexture_);
-    closeSprite_.setColor(lightGray);
+    closeSprite_.setColor(lightGray_);
     closeSprite_.setPosition(wSize_.x - 27.f, 10.f);
 
     lockSprite_.setTexture(lockOpenTexture_);
-    lockSprite_.setColor(lightGray);
+    lockSprite_.setColor(lightGray_);
     lockSprite_.setPosition(wSize_.x - 27.f, 33.f);
 
     volumeSprite_.setTexture(volumeTexture_);
-    volumeSprite_.setColor(lightGray);
+    volumeSprite_.setColor(lightGray_);
     volumeSprite_.setPosition(wSize_.x - 27.f, 56.f);
 }
 
@@ -99,27 +99,31 @@ void Overlay::run()
 
 bool Overlay::handleEvent(sf::Event e)
 {
-    if (e.type == sf::Event::MouseMoved) {
+    if (e.type == sf::Event::Closed) {
+        w_.close();
+        return true;
+    }
+    else if (e.type == sf::Event::MouseMoved) {
         if (startMousePos_.x != -1)
             w_.setPosition(startWinPos_ - startMousePos_ + sf::Mouse::getPosition());
 
         //make the close button red
         if (closeSprite_.getGlobalBounds().contains(float(e.mouseMove.x), float(e.mouseMove.y))) {
-            if (closeSprite_.getColor() != redClose) {
-                closeSprite_.setColor(redClose);
+            if (closeSprite_.getColor() != redClose_) {
+                closeSprite_.setColor(redClose_);
                 return true;
             }
         }
 		//make the close button gray
-        else if (closeSprite_.getColor() != lightGray) {
-            closeSprite_.setColor(lightGray);
+        else if (closeSprite_.getColor() != lightGray_) {
+            closeSprite_.setColor(lightGray_);
             return true;
         }
     }
     else if (e.type == sf::Event::MouseLeft) {
 	    //make the close button gray
-        if (closeSprite_.getColor() != lightGray) {
-            closeSprite_.setColor(lightGray);
+        if (closeSprite_.getColor() != lightGray_) {
+            closeSprite_.setColor(lightGray_);
             return true;
         }
     }
@@ -144,6 +148,8 @@ bool Overlay::handleEvent(sf::Event e)
 }
 void Overlay::drawOverlay()
 {
+    std::cout << "redrawing overlay\n";
+    const float vc = (titleBar_.top + titleBar_.height + w_.getSize().y) / 2.f - 4;
     const auto buildRect = [](sf::FloatRect fr, float r, int n, sf::Color c) {
 		auto p = fr.getPosition();
 		auto s = fr.getSize();
@@ -175,11 +181,90 @@ void Overlay::drawOverlay()
     mutex_.lock();
     w_.setActive(true);
     w_.clear(sf::Color::Transparent);
-    std::cout << "redrawing overlay\n";
+    w_.draw(buildRect(background_, 20, 7, bgCol_));
 
-    w_.draw(buildRect(background_, 20, 7, sf::Color(50, 50, 50, 200)));
-    w_.draw(buildRect(titleBar_, 10, 7, lightGray));
+    //draw previous line
+    if (currentLine_ - 1 >= 0) {
+        bool splitLine = false;
+        sf::Text prev1(currentLyrics_[currentLine_ - 1].first, font_, 15);
+        prev1.setFillColor(secLineCol_);
+        sf::Text prev2("", font_, 15);
+        prev2.setFillColor(secLineCol_);
+        //split the line into two if needed
+        if (prev1.getGlobalBounds().width > titleBar_.width * 15 / 20.f) {
+            std::string l = currentLyrics_[currentLine_ - 1].first;
+            const size_t mid = l.size() / 2;;
+            for (size_t d = 0; d < mid; d++) {
+                if (mid + d < l.size() && l[mid + d] == ' ') {
+                    prev1.setString(l.substr(0, mid + d));
+                    prev2.setString(l.substr(mid + d + 1, l.size()));
+                    splitLine = true;
+                    break;
+                }
+                if (mid - d >= 0 && l[mid - d] == ' ') {
+                    prev1.setString(l.substr(0, mid - d));
+                    prev2.setString(l.substr(mid - d + 1, l.size()));
+                    splitLine = true;
+                    break;
+                }
+            }
+        }
 
+        prev1.setOrigin(prev1.getGlobalBounds().width / 2.f, prev1.getGlobalBounds().height / 2.f);
+        prev2.setOrigin(prev2.getGlobalBounds().width / 2.f, prev2.getGlobalBounds().height / 2.f);
+
+        //draw second line if needed
+        if (splitLine) {
+            prev1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - 58);
+            prev2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - 42);
+            w_.draw(prev2);
+        }
+        else
+            prev1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - 50);
+        w_.draw(prev1);
+    }
+    //draw next line
+    if (currentLine_ + 1 < currentLyrics_.size()) {
+        bool splitLine = false;
+        sf::Text next1(currentLyrics_[currentLine_ + 1].first, font_, 15);
+        next1.setFillColor(secLineCol_);
+        sf::Text next2("", font_, 15);
+        next2.setFillColor(secLineCol_);
+        //split the line into two if needed
+        if (next1.getGlobalBounds().width > titleBar_.width * 15 / 20.f) {
+            std::string l = currentLyrics_[currentLine_ + 1].first;
+            const size_t mid = l.size() / 2;;
+            for (size_t d = 0; d < mid; d++) {
+                if (mid + d < l.size() && l[mid + d] == ' ') {
+                    next1.setString(l.substr(0, mid + d));
+                    next2.setString(l.substr(mid + d + 1, l.size()));
+                    splitLine = true;
+                    break;
+                }
+                if (mid - d >= 0 && l[mid - d] == ' ') {
+                    next1.setString(l.substr(0, mid - d));
+                    next2.setString(l.substr(mid - d + 1, l.size()));
+                    splitLine = true;
+                    break;
+                }
+            }
+        }
+
+        next1.setOrigin(next1.getGlobalBounds().width / 2.f, next1.getGlobalBounds().height / 2.f);
+        next2.setOrigin(next2.getGlobalBounds().width / 2.f, next2.getGlobalBounds().height / 2.f);
+
+        //draw second line if needed
+        if (splitLine) {
+            next1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 42 + 2);
+            next2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 58 + 2);
+            w_.draw(next2);
+        }
+        else
+            next1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 50 + 2);
+        w_.draw(next1);
+    }
+
+    w_.draw(buildRect(titleBar_, 10, 7, lightGray_));
     sf::Text title(currentSong_, font_, 14);
     title.setPosition(20, 15);
     w_.draw(title);
@@ -188,11 +273,43 @@ void Overlay::drawOverlay()
     w_.draw(lockSprite_);
     w_.draw(volumeSprite_);
 
-	sf::Text l(currentLyrics_[currentLine_].first, font_, 20);
-	l.setFillColor(sf::Color::White);
-    l.setOrigin(l.getGlobalBounds().width / 2.f, l.getGlobalBounds().height / 2.f);
-	l.setPosition(w_.getSize().x / 2.f, w_.getSize().y / 2.f);
-	w_.draw(l);
+    bool splitLine = false;
+	sf::Text line1(currentLyrics_[currentLine_].first, font_, 20);
+    line1.setFillColor(mainLineCol_);
+    sf::Text line2("", font_, 20);
+    line2.setFillColor(mainLineCol_);
+    //split the line into two if needed
+    if (line1.getGlobalBounds().width > titleBar_.width) {
+        std::string l = currentLyrics_[currentLine_].first;
+        const size_t mid = l.size() / 2;;
+        for (size_t d = 0; d < mid; d++) {
+            if (mid + d < l.size() && l[mid + d] == ' ') {
+                line1.setString(l.substr(0, mid + d));
+                line2.setString(l.substr(mid + d + 1, l.size()));
+                splitLine = true;
+                break;
+            }            
+            if (mid - d >= 0 && l[mid - d] == ' ') {
+                line1.setString(l.substr(0, mid - d));
+                line2.setString(l.substr(mid - d + 1, l.size()));
+                splitLine = true;
+                break;
+            }
+        }
+    }
+
+    line1.setOrigin(line1.getGlobalBounds().width / 2.f, line1.getGlobalBounds().height / 2.f);
+    line2.setOrigin(line2.getGlobalBounds().width / 2.f, line2.getGlobalBounds().height / 2.f);
+
+    //draw second line if needed
+    if (splitLine) {
+        line1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - 10);
+        line2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 10);
+        w_.draw(line2);
+    }
+    else
+        line1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc);
+    w_.draw(line1);
 
     w_.display();
     w_.setActive(false);
@@ -340,17 +457,23 @@ void Overlay::handleSongChange()
                     if (line.empty()) 
                         continue;
 
-					size_t time = size_t(60'000 * std::stoi(line.substr(1, line.find_first_of(':'))));
+					int time = 60'000 * std::stoi(line.substr(1, line.find_first_of(':')));
 					line = line.substr(line.find_first_of(':') + 1, line.size());
-					time += size_t(1'000 * std::stoi(line.substr(0, line.find_first_of('.'))));
+
+					time += 1'000 * std::stoi(line.substr(0, line.find_first_of('.')));
 					line = line.substr(line.find_first_of('.') + 1, line.size());
-					time += size_t(10 * std::stoi(line.substr(0, line.find_first_of(']'))));
+
+					time += 10 * std::stoi(line.substr(0, line.find_first_of(']')));
 					line = line.substr(line.find_first_of(']') + 1, line.size());
 
                     if (line[0] == ' ')
                         line = line.substr(1, line.size());
 
-					currentLyrics_.push_back({ line, std::max(0, int(time) - 650) });
+                    auto& last = currentLyrics_[currentLyrics_.size() - 1];
+                    if (last.first == "" && time - last.second < 1'500)
+                        last = { line, std::max(0, time - 500) };
+                    else
+					    currentLyrics_.push_back({ line, std::max(0, time - 500) });
                 }
             }
 
@@ -374,7 +497,7 @@ void Overlay::scrollLyrics()
 			continue;
 		}
 
-		size_t i = 0;
+		int i = 0;
 		while (i < currentLyrics_.size() && currentLyrics_[i].second < progress_)
 			i++;
 

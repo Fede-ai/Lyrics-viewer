@@ -2,7 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include "cefapp.hpp"
 
-typedef std::pair<std::string, size_t> Line;
+typedef std::pair<std::string, int> Line;
 
 class Overlay {
 public:
@@ -40,10 +40,10 @@ private:
 	sf::Vector2i startWinPos_;
 
 	std::string currentSong_ = "No Song Playing";
-	size_t progress_ = 0;
-	size_t duration_ = 0;
+	int progress_ = 0;
+	int duration_ = 0;
 	std::vector<Line> currentLyrics_ = { { "No Lyrics", 0 } };
-	size_t currentLine_ = 0;
+	int currentLine_ = 0;
 	bool isPlaying_ = false;
 
 	sf::Font font_;
@@ -56,8 +56,11 @@ private:
 	sf::Sprite lockSprite_;
 	sf::Sprite volumeSprite_;
 
-	const sf::Color lightGray = sf::Color(150, 150, 150, 150);
-	const sf::Color redClose = sf::Color(230, 30, 30, 150);
+	const sf::Color bgCol_ = sf::Color(50, 50, 50, 200);
+	const sf::Color lightGray_ = sf::Color(150, 150, 150, 150);
+	const sf::Color redClose_ = sf::Color(230, 30, 30, 150);
+	const sf::Color mainLineCol_ = sf::Color(255, 255, 255);
+	const sf::Color secLineCol_ = sf::Color(210, 210, 210);
 
 	sf::Vector2i wSize_ = sf::Vector2i(0, 0);
 	sf::FloatRect titleBar_;

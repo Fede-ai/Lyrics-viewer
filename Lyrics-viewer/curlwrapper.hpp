@@ -23,7 +23,8 @@ struct Request {
 	enum class Methods {
 		NONE,
 		GET,
-		POST
+		POST,
+		PUT
 	};
 	
 	Request(Methods inMethod)

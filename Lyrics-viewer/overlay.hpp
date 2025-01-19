@@ -40,6 +40,7 @@ private:
 	sf::Vector2i startWinPos_;
 
 	std::string currentSong_ = "No Song Playing";
+	std::vector<std::string> currentArtists_;
 	int progress_ = 0;
 	int duration_ = 0;
 	std::vector<Line> currentLyrics_ = { { "No Lyrics", 0 } };
@@ -51,14 +52,25 @@ private:
 	sf::Texture lockOpenTexture_;
 	sf::Texture lockCloseTexture_;
 	sf::Texture volumeTexture_;
+	sf::Texture	prevTexture_;
+	sf::Texture playTexture_;
+	sf::Texture pauseTexture_;
 
 	sf::Sprite closeSprite_;
 	sf::Sprite lockSprite_;
 	sf::Sprite volumeSprite_;
+	sf::Sprite prevSprite_;
+	sf::Sprite playSprite_;
+	sf::Sprite nextSprite_;
 
-	const sf::Color bgCol_ = sf::Color(50, 50, 50, 200);
-	const sf::Color lightGray_ = sf::Color(150, 150, 150, 150);
-	const sf::Color redClose_ = sf::Color(230, 30, 30, 150);
+	const sf::Color shadowWhite_ = sf::Color(200, 200, 200);
+	const sf::Color pressGray_ = sf::Color(160, 160, 160);
+
+	const sf::Color bgCol_ = sf::Color(40, 40, 40, 210);
+	const sf::Color lightGray_ = sf::Color(130, 130, 130, 140);
+	const sf::Color darkGray_ = sf::Color(100, 100, 100, 140);
+
+	const sf::Color redClose_ = sf::Color(230, 30, 30, 140);
 	const sf::Color mainLineCol_ = sf::Color(255, 255, 255);
 	const sf::Color secLineCol_ = sf::Color(210, 210, 210);
 

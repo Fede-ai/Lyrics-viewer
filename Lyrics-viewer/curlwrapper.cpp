@@ -34,12 +34,16 @@ Response CurlWrapper::sendReq(Request req)
     case Request::Methods::GET:
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
         break;
+    case Request::Methods::PUT:
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, req.body.c_str());
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
     }
 
-    Response res;
     curl_easy_setopt(curl, CURLOPT_CAINFO, ".\\cacert.pem");
     curl_easy_setopt(curl, CURLOPT_URL, req.url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+
+    Response res;
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &res.body);
 
     //set request headers

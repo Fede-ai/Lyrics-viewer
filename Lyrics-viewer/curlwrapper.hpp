@@ -47,16 +47,14 @@ public:
 	CurlWrapper(const CurlWrapper&) = delete;
 	CurlWrapper& operator=(const CurlWrapper&) = delete;
 
-	static Response send(Request req) {
+	static Response send(const Request& req) {
 		static CurlWrapper instance;
-		return instance.sendReq(req);
+		return instance.sendRequest(req);
 	}
 
 private:
 	CurlWrapper();
+	Response sendRequest(const Request& req);
 
-	Response sendReq(Request req);
 	static size_t writeCallback(void* contents, size_t size, size_t nmemb, void* userp);
-
-	CURL* curl = NULL;
 };

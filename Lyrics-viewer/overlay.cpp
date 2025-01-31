@@ -279,8 +279,6 @@ bool Overlay::handleEvent(sf::Event e)
                     CurlWrapper::send(req);
                     }).detach();
 
-                isPlaying_ = !isPlaying_;
-
                 return true;
             }
             return false;
@@ -598,7 +596,18 @@ void Overlay::handleSongChange()
 
         //no song playing
 		if (res.code == 204) {
-            currentSong_ = "No Song";
+            if (currentSong_ != "No Song Playing") {
+                currentSong_ = "No Song Playing";
+                currentLyrics_ = { { "No Lyrics", 0 } };
+                currentArtists_.clear();
+                isPlaying_ = false;
+                drawOverlay();
+            }
+            else if (isPlaying_) {
+				isPlaying_ = false;
+				drawOverlay();
+            }
+
             sf::sleep(sf::seconds(1));
 			continue;
 		}

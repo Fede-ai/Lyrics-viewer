@@ -4,21 +4,15 @@ CurlWrapper::CurlWrapper()
 {
     if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
         std::cout << "failed curl global initialization\n";
-
-    curl = curl_easy_init();
-    if (!curl)
-        std::cout << "failed curl easy initialization\n";
 }
 CurlWrapper::~CurlWrapper()
 {
-    if (curl)
-        curl_easy_cleanup(curl);
-
     curl_global_cleanup();
 }
 
-Response CurlWrapper::sendReq(Request req)
+Response CurlWrapper::sendRequest(const Request& req)
 {
+    auto curl = curl_easy_init();
     if (!curl)
         return Response("curl wasn't initialized");
 
@@ -60,8 +54,7 @@ Response CurlWrapper::sendReq(Request req)
 
     //cleanup
     curl_slist_free_all(chunk);
-    curl_easy_reset(curl);
-
+    curl_easy_cleanup(curl);
     return res;
 }
 

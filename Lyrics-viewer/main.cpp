@@ -2,8 +2,6 @@
 #include "curlwrapper.hpp"
 #include <thread>
 
-#pragma comment (lib, "dwmapi.lib")
-
 int main()
 {
     char buf[_MAX_PATH + 1];
@@ -11,11 +9,11 @@ int main()
     std::string dir = std::string(buf).substr(0, std::string(buf).find_last_of('\\'));
 
     CefSettings settings;
-    settings.log_severity = LOGSEVERITY_WARNING;
+    settings.log_severity = LOGSEVERITY_DEBUG;
     settings.no_sandbox = true;
     settings.windowless_rendering_enabled = true;
     CefString(&settings.root_cache_path).FromASCII((dir + std::string("/cache")).c_str());
-    CefString(&settings.log_file).FromASCII((dir + std::string("/log.log")).c_str());
+    //CefString(&settings.log_file).FromASCII((dir + std::string("/log.log")).c_str());
 
     CefRefPtr<SimpleApp> app = new SimpleApp();
 
@@ -39,11 +37,10 @@ int main()
     CefRunMessageLoop();
 
     CefShutdown();
-    std::cout << "cef has been shutdown\n";
 
     //shutdown overlay forcingly
     if (overlay.isWaitingAuth()) {
-        std::cout << "detaching overlay thread (auth crashed)\n";
+        std::cerr << "error 201: auth window closed before login\n";
         runOverlayThread.detach();
     }
     //wait for overlay to close gracefully

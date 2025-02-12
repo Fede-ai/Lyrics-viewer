@@ -6,7 +6,6 @@
 #include "include/views/cef_window.h"
 
 std::vector<CefRefPtr<CefBrowser>> AuthClient::browsers_ {};
-bool AuthClient::isAuthenticated_ = false;
 
 void AuthClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title)
 {
@@ -42,8 +41,8 @@ void AuthClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
         }
     }
 
-    //std::cout << "OnBeforeClose auth, size = " << browsers_.size() << "\n";
+    std::cout << "OnBeforeClose auth, size = " << browsers_.size() << "\n";
 
-    if (!isAuthenticated_ && browsers_.size() == 0)
+    if (browsers_.size() == 0)
         CefQuitMessageLoop();
 }

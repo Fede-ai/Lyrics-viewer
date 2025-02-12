@@ -131,43 +131,8 @@ void SimpleApp::OnContextInitialized()
     CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browserView));
 }
 
-void SimpleApp::closeAuthWindows(bool auth)
+void SimpleApp::closeAuthWindows()
 {
-    //tell the client that it has been authenticated
-    if (auth)
-        AuthClient::authenticate();
-
     for (int i = 0; i < AuthClient::getBrowsers().size(); i++) 
         AuthClient::getBrowsers()[i]->GetHost()->CloseBrowser(true);
-
-    //launch the player on the ui thread
-    if (auth)
-        CefPostTask(TID_UI, base::BindOnce(&SimpleApp::launchPlayerBrowser, this));
-}
-void SimpleApp::closePlayerBrowser()
-{
-    CefPostTask(TID_UI, base::BindOnce([]() {
-        CefQuitMessageLoop();
-        }));
-
-    //WinlessClient::getBrowser()->GetHost()->CloseBrowser(true);
-}
-
-void SimpleApp::launchPlayerBrowser()
-{
-    //TO DO: FIND OUT WHY THIS FUCKING CRASHES
-
-    //CEF_REQUIRE_UI_THREAD();
-    //
-    //std::string url = "http://fede-ai.github.io/Lyrics-viewer/player.html";
-    //CefBrowserSettings browserSettings;
-    //browserSettings.windowless_frame_rate = 1;
-    //
-    //CefWindowInfo windowInfo;
-    //windowInfo.SetAsWindowless(nullptr);
-    //
-    //windowlessClient_ = CefRefPtr(new WinlessClient());
-    //
-    //CefBrowserHost::CreateBrowserSync(windowInfo, windowlessClient_, 
-    //    url, browserSettings, nullptr, nullptr);
 }

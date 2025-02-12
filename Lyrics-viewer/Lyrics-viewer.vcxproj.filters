@@ -23,9 +23,6 @@
     <ClInclude Include="cefapp.hpp">
       <Filter>cef</Filter>
     </ClInclude>
-    <ClInclude Include="winlessclient.hpp">
-      <Filter>cef</Filter>
-    </ClInclude>
     <ClInclude Include="binding.hpp">
       <Filter>cef</Filter>
     </ClInclude>
@@ -42,9 +39,6 @@
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="winlessclient.cpp">
-      <Filter>cef</Filter>
     </ClCompile>
     <ClCompile Include="cefapp.cpp">
       <Filter>cef</Filter>

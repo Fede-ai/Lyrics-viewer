@@ -1,5 +1,4 @@
 #pragma once
-#include "winlessclient.hpp"
 #include "authclient.hpp"
 #include "include/cef_app.h"
 
@@ -26,13 +25,9 @@ public:
         return new AuthClient();
     }
 
-    void closeAuthWindows(bool auth);
-    void closePlayerBrowser();
+    void closeAuthWindows();
 
 private:
-    void launchPlayerBrowser();
-
-    CefRefPtr<WinlessClient> windowlessClient_;
     CefRefPtr<AuthClient> authClient_;
 
     IMPLEMENT_REFCOUNTING(SimpleApp);

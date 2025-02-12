@@ -35,34 +35,6 @@ public:
             return true;
         }
 
-        if (name == "getToken" && arguments.size() == 0)
-        {
-            //connect to the named pipe
-            HANDLE hPipe = CreateFile(TEXT("\\\\.\\pipe\\shareToken"),
-                GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-
-            //failed to connect to the pipe (error 105)
-            if (hPipe == INVALID_HANDLE_VALUE) {
-                std::cerr << "error 105: " << GetLastError() << "\n";
-                return false;
-            }
-
-            char buffer[512] = {};
-            DWORD bytesRead;
-            //failed to read the message (error 107)
-            if (!ReadFile(hPipe, buffer, sizeof(buffer) - 1, &bytesRead, NULL)) {
-                std::cerr << "error 107: " << GetLastError() << "\n";
-                CloseHandle(hPipe);
-                return false;
-            }
-
-            buffer[bytesRead] = '\0'; //null terminate the string
-            std::string str = buffer;
-            retval = CefV8Value::CreateString(buffer);
-
-            return true;
-        }
-
         if (name == "printCpp" && arguments.size() == 1 && arguments[0]->IsString())
         {
             std::cout << "javascript says: " << arguments[0]->GetStringValue() << "\n";

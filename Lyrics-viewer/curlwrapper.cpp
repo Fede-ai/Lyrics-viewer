@@ -49,8 +49,10 @@ Response CurlWrapper::sendRequest(const Request& req)
     //perform request
     CURLcode curlRes = curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &res.code);
-    if (curlRes != CURLE_OK)
+    if (curlRes != CURLE_OK) {
         res.error = "curl error: " + std::string(curl_easy_strerror(curlRes));
+		std::cerr << res.error << "\n";
+    }
 
     //cleanup
     curl_slist_free_all(chunk);

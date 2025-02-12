@@ -114,7 +114,6 @@ endlocal</Command>
     <ClInclude Include="binding.hpp" />
     <ClInclude Include="cefapp.hpp" />
     <ClInclude Include="overlay.hpp" />
-    <ClInclude Include="winlessclient.hpp" />
     <ClInclude Include="curlwrapper.hpp" />
     <ClInclude Include="json.hpp" />
   </ItemGroup>
@@ -122,7 +121,6 @@ endlocal</Command>
     <ClCompile Include="authclient.cpp" />
     <ClCompile Include="cefapp.cpp" />
     <ClCompile Include="overlay.cpp" />
-    <ClCompile Include="winlessclient.cpp" />
     <ClCompile Include="curlwrapper.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>

@@ -1,8 +1,10 @@
 #include "overlay.hpp"
 #include "curlwrapper.hpp"
+#include <thread>
 #include <dwmapi.h>
 #include <Windows.h>
-#include <thread>
+
+#pragma comment (lib, "dwmapi.lib")
 
 Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 	:
@@ -24,16 +26,16 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
     pauseTexture_.loadFromFile("resources/pause.png");
 
 	closeSprite_.setTexture(closeTexture_);
-    closeSprite_.setColor(lightGray_);
-    closeSprite_.setPosition(wSize_.x - 27.f, 10.f);
+    closeSprite_.setColor(shadowWhite_);
+    closeSprite_.setPosition(wSize_.x - 27.f, 6.f);
 
     lockSprite_.setTexture(lockOpenTexture_);
-    lockSprite_.setColor(lightGray_);
-    lockSprite_.setPosition(wSize_.x - 27.f, 33.f);
+    lockSprite_.setColor(shadowWhite_);
+    lockSprite_.setPosition(wSize_.x - 27.f, 28.f);
 
     volumeSprite_.setTexture(volumeTexture_);
-    volumeSprite_.setColor(lightGray_);
-    volumeSprite_.setPosition(wSize_.x - 27.f, 56.f);
+    volumeSprite_.setColor(shadowWhite_);
+    volumeSprite_.setPosition(wSize_.x - 27.f, 50.f);
 
     prevSprite_.setTexture(prevTexture_);
     prevSprite_.setPosition(titleBar_.left + titleBar_.width - 13 - 40,
@@ -59,23 +61,13 @@ void Overlay::run()
 {
     //if auth failed, close window without launching player
     if (!getFirstToken()) {
-        app_->closeAuthWindows(false);
+        app_->closeAuthWindows();
         return;
     }
 
-    //ATTENTION not needed since right now the browser is not playing the music
-    //run the thread to send the token to the player
-    //std::thread shareThread(&Overlay::sendTokenToPlayer, this);
-    //shareThread.detach();
-
-    //close auth and launch player
+    //close auth and shutdown cef
     sf::sleep(sf::seconds(0.2f));
-    app_->closeAuthWindows(true);
-
-    //close player and shutdown cef
-	//ATTENTION this is meant to be called when the overlay is closed. since right 
-    //ATTENTION now, since the browser is not playing the music, it can be closed asap
-    app_->closePlayerBrowser();
+    app_->closeAuthWindows();
 
 	//create the window
     sf::ContextSettings settings;
@@ -92,14 +84,16 @@ void Overlay::run()
 
 	//move window to the top left corner
     DwmExtendFrameIntoClientArea(w_.getSystemHandle(), &margins);
-    SetWindowPos(w_.getSystemHandle(), HWND_TOPMOST, 15, 15,
-        0, 0, SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
+    SetWindowPos(w_.getSystemHandle(), HWND_TOPMOST, sf::VideoMode::getDesktopMode().width - 15
+        - wSize_.x, 75, 0, 0, SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
 
 	drawOverlay();
     //run the thread to check for song changes
     std::thread songChangeThread(&Overlay::handleSongChange, this);
     //run the thread to scroll the lyrics
     std::thread scrollThread(&Overlay::scrollLyrics, this);
+    //run the thread to expand the window
+    std::thread expandThread(&Overlay::expandWindow, this);
 
 	while (w_.isOpen()) {
 		sf::Event e;
@@ -109,9 +103,10 @@ void Overlay::run()
 		}
 	}
 
-    isRunning = false;
+    isRunning_ = false;
     songChangeThread.join();
     scrollThread.join();
+	expandThread.join();
 }
 
 bool Overlay::handleEvent(sf::Event e)
@@ -124,17 +119,35 @@ bool Overlay::handleEvent(sf::Event e)
         if (startMousePos_ != sf::Vector2i(-1, -1))
             w_.setPosition(startWinPos_ - startMousePos_ + sf::Mouse::getPosition());
 
+		bool needRedraw = false;
+        if (!isContracted_ && e.mouseMove.y > titleBar_.height + titleBar_.top * 2) {
+            isContracted_ = true;
+            background_ = sf::FloatRect(0, 0, float(wSize_.x), titleBar_.height + titleBar_.top * 2);
+            drawOverlay();
+
+            w_.setSize(sf::Vector2u(wSize_.x, int(titleBar_.height + titleBar_.top * 2)));
+            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, titleBar_.height / 2.f +
+                titleBar_.top), sf::Vector2f(w_.getSize())));
+        }
+		else if (isContracted_ && e.mouseMove.y < titleBar_.height + titleBar_.top * 2) {
+			isContracted_ = false;
+			background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
+			w_.setSize(sf::Vector2u(wSize_.x, wSize_.y));
+			w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, wSize_.y / 2.f), sf::Vector2f(w_.getSize())));
+            needRedraw = true;
+		}
+
         //make the close button dark gray (if mouse has just entered the sprite)
         if (closeSprite_.getGlobalBounds().contains(float(e.mouseMove.x), float(e.mouseMove.y))) {
-            if (closeSprite_.getColor() == lightGray_) {
-                closeSprite_.setColor(darkGray_);
+            if (closeSprite_.getColor() == shadowWhite_) {
+                closeSprite_.setColor(pressGray_);
                 return true;
             }
-            return false;
+            return needRedraw;
         }
         //make the close button light gray
-        else if (closeSprite_.getColor() != lightGray_) {
-            closeSprite_.setColor(lightGray_);
+        else if (closeSprite_.getColor() != shadowWhite_) {
+            closeSprite_.setColor(shadowWhite_);
             return true;
         }
 
@@ -144,7 +157,7 @@ bool Overlay::handleEvent(sf::Event e)
                 prevSprite_.setColor(shadowWhite_);
                 return true;
             }
-            return false;
+            return needRedraw;
         }
         //make the prev button white
         else if (prevSprite_.getColor() != sf::Color::White) {
@@ -158,7 +171,7 @@ bool Overlay::handleEvent(sf::Event e)
                 playSprite_.setColor(shadowWhite_);
                 return true;
             }
-            return false;
+            return needRedraw;
         }
         //make the play button white
         else if (playSprite_.getColor() != sf::Color::White) {
@@ -172,20 +185,33 @@ bool Overlay::handleEvent(sf::Event e)
                 nextSprite_.setColor(shadowWhite_);
                 return true;
             }
-            return false;
+            return needRedraw;
         }
         //make the next button white
         else if (nextSprite_.getColor() != sf::Color::White) {
             nextSprite_.setColor(sf::Color::White);
             return true;
         }
+
+		return needRedraw;
+    }
+    else if (e.type == sf::Event::MouseEntered) {
+        if (sf::Mouse::getPosition(w_).y > titleBar_.height + titleBar_.top * 2) {
+            isContracted_ = true;
+            background_ = sf::FloatRect(0, 0, float(wSize_.x), titleBar_.height + titleBar_.top * 2);
+            drawOverlay();
+
+            w_.setSize(sf::Vector2u(wSize_.x, int(titleBar_.height + titleBar_.top * 2)));
+            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, titleBar_.height / 2.f +
+                titleBar_.top), sf::Vector2f(w_.getSize())));
+        }
     }
     else if (e.type == sf::Event::MouseLeft) {
         bool needRedraw = false;
 
         //make the close button light gray
-        if (closeSprite_.getColor() != lightGray_) {
-            closeSprite_.setColor(lightGray_);
+        if (closeSprite_.getColor() != shadowWhite_) {
+            closeSprite_.setColor(shadowWhite_);
             needRedraw = true;
         }
         //make the prev button white
@@ -306,7 +332,7 @@ bool Overlay::handleEvent(sf::Event e)
 }
 void Overlay::drawOverlay()
 {
-    std::cout << "redrawing overlay\n";
+    //std::cout << "redrawing overlay\n";
     const float vc = (titleBar_.top + titleBar_.height + w_.getSize().y) / 2.f - 4;
     const auto buildRect = [](sf::FloatRect fr, float r, int n, sf::Color c) {
 		auto p = fr.getPosition();
@@ -341,110 +367,116 @@ void Overlay::drawOverlay()
     w_.clear(sf::Color::Transparent);
     w_.draw(buildRect(background_, 20, 7, bgCol_));
 
-    //draw previous line
-    if (currentLine_ - 1 >= 0) {
-        bool splitLine = false;
-        sf::Text prev1(currentLyrics_[currentLine_ - 1].first, font_, 15);
-        prev1.setFillColor(secLineCol_);
-        sf::Text prev2("", font_, 15);
-        prev2.setFillColor(secLineCol_);
-        //split the line into two if needed
-        if (prev1.getGlobalBounds().width > titleBar_.width * 15 / 20.f) {
-            std::string l = currentLyrics_[currentLine_ - 1].first;
-            const size_t mid = l.size() / 2;;
-            for (size_t d = 0; d < mid; d++) {
-                if (mid + d < l.size() && l[mid + d] == ' ') {
-                    prev1.setString(l.substr(0, mid + d));
-                    prev2.setString(l.substr(mid + d + 1, l.size()));
-                    splitLine = true;
-                    break;
-                }
-                if (mid - d >= 0 && l[mid - d] == ' ') {
-                    prev1.setString(l.substr(0, mid - d));
-                    prev2.setString(l.substr(mid - d + 1, l.size()));
-                    splitLine = true;
-                    break;
-                }
-            }
-        }
+	//draw previous and next lines
+    if (!isContracted_) {
+        const int lineDist = 50;
 
-        prev1.setOrigin(prev1.getGlobalBounds().width / 2.f, prev1.getGlobalBounds().height / 2.f);
-        prev2.setOrigin(prev2.getGlobalBounds().width / 2.f, prev2.getGlobalBounds().height / 2.f);
-
-        //draw second line if needed
-        if (splitLine) {
-            prev1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - 58);
-            prev2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - 42);
-            w_.draw(prev2);
-        }
-        else
-            prev1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - 50);
-        w_.draw(prev1);
-    }
-    //draw next line
-    if (currentLine_ + 1 < currentLyrics_.size()) {
-        bool splitLine = false;
-        sf::Text next1(currentLyrics_[currentLine_ + 1].first, font_, 15);
-        next1.setFillColor(secLineCol_);
-        sf::Text next2("", font_, 15);
-        next2.setFillColor(secLineCol_);
-        //split the line into two if needed
-        if (next1.getGlobalBounds().width > titleBar_.width * 15 / 20.f) {
-            std::string l = currentLyrics_[currentLine_ + 1].first;
-            const size_t mid = l.size() / 2;;
-            for (size_t d = 0; d < mid; d++) {
-                if (mid + d < l.size() && l[mid + d] == ' ') {
-                    next1.setString(l.substr(0, mid + d));
-                    next2.setString(l.substr(mid + d + 1, l.size()));
-                    splitLine = true;
-                    break;
-                }
-                if (mid - d >= 0 && l[mid - d] == ' ') {
-                    next1.setString(l.substr(0, mid - d));
-                    next2.setString(l.substr(mid - d + 1, l.size()));
-                    splitLine = true;
-                    break;
+        //draw previous line
+        if (currentLine_ - 1 >= 0) {
+            bool splitLine = false;
+            sf::Text prev1(currentLyrics_[currentLine_ - 1].first, font_, 15);
+            prev1.setFillColor(secLineCol_);
+            sf::Text prev2("", font_, 15);
+            prev2.setFillColor(secLineCol_);
+            //split the line into two if needed
+            if (prev1.getGlobalBounds().width > titleBar_.width * 15 / 20.f) {
+                std::wstring l = currentLyrics_[currentLine_ - 1].first;
+                const size_t mid = l.size() / 2;;
+                for (size_t d = 0; d < mid; d++) {
+                    if (mid + d < l.size() && l[mid + d] == ' ') {
+                        prev1.setString(l.substr(0, mid + d));
+                        prev2.setString(l.substr(mid + d + 1, l.size()));
+                        splitLine = true;
+                        break;
+                    }
+                    if (mid - d >= 0 && l[mid - d] == ' ') {
+                        prev1.setString(l.substr(0, mid - d));
+                        prev2.setString(l.substr(mid - d + 1, l.size()));
+                        splitLine = true;
+                        break;
+                    }
                 }
             }
-        }
 
-        next1.setOrigin(next1.getGlobalBounds().width / 2.f, next1.getGlobalBounds().height / 2.f);
-        next2.setOrigin(next2.getGlobalBounds().width / 2.f, next2.getGlobalBounds().height / 2.f);
+            prev1.setOrigin(prev1.getGlobalBounds().width / 2.f, prev1.getGlobalBounds().height / 2.f);
+            prev2.setOrigin(prev2.getGlobalBounds().width / 2.f, prev2.getGlobalBounds().height / 2.f);
 
-        //draw second line if needed
-        if (splitLine) {
-            next1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 42 + 2);
-            next2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 58 + 2);
-            w_.draw(next2);
+            //draw second line if needed
+            if (splitLine) {
+                prev1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - lineDist - 9);
+                prev2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - lineDist + 9);
+                w_.draw(prev2);
+            }
+            else
+                prev1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - lineDist);
+            w_.draw(prev1);
         }
-        else
-            next1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 50 + 2);
-        w_.draw(next1);
+        //draw next line
+        if (currentLine_ + 1 < int(currentLyrics_.size())) {
+            bool splitLine = false;
+            sf::Text next1(currentLyrics_[currentLine_ + 1].first, font_, 15);
+            next1.setFillColor(secLineCol_);
+            sf::Text next2("", font_, 15);
+            next2.setFillColor(secLineCol_);
+            //split the line into two if needed
+            if (next1.getGlobalBounds().width > titleBar_.width * 15 / 20.f) {
+                std::wstring l = currentLyrics_[currentLine_ + 1].first;
+                const size_t mid = l.size() / 2;;
+                for (size_t d = 0; d < mid; d++) {
+                    if (mid + d < l.size() && l[mid + d] == ' ') {
+                        next1.setString(l.substr(0, mid + d));
+                        next2.setString(l.substr(mid + d + 1, l.size()));
+                        splitLine = true;
+                        break;
+                    }
+                    if (mid - d >= 0 && l[mid - d] == ' ') {
+                        next1.setString(l.substr(0, mid - d));
+                        next2.setString(l.substr(mid - d + 1, l.size()));
+                        splitLine = true;
+                        break;
+                    }
+                }
+            }
+
+            next1.setOrigin(next1.getGlobalBounds().width / 2.f, next1.getGlobalBounds().height / 2.f);
+            next2.setOrigin(next2.getGlobalBounds().width / 2.f, next2.getGlobalBounds().height / 2.f);
+
+            //draw second line if needed
+            if (splitLine) {
+                next1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 2 + lineDist - 9);
+                next2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 2 + lineDist + 9);
+                w_.draw(next2);
+            }
+            else
+                next1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 2 + lineDist);
+            w_.draw(next1);
+        }
     }
 
     w_.draw(buildRect(titleBar_, 10, 7, lightGray_));
-
-    std::string titleStr = currentSong_;
+    std::wstring titleStr = currentSong_;
+	//add artists to the title
     for (int i = 0; i < currentArtists_.size(); i++) {
         if (i == 0)
-            titleStr += " - ";
+            titleStr += L" - ";
         else
-            titleStr += ", ";
-
+            titleStr += L", ";
+    
         titleStr += currentArtists_[i];
     }
     sf::Text title(titleStr, font_, 14);
+	//truncate the title if it's too long
     bool isTitleShortened = false;
     while (title.getGlobalBounds().width > titleBar_.width - 85) {
         titleStr.resize(titleStr.size() - 1);
         if (titleStr[titleStr.size() - 1] == ' ')
             titleStr.resize(titleStr.size() - 1);
-
+        
         title.setString(titleStr);
         isTitleShortened = true;
     }
     if (isTitleShortened)
-        title.setString(titleStr + "...");
+        title.setString(titleStr + L"...");
     title.setPosition(titleBar_.left + 8, 15);
     w_.draw(title);
 
@@ -459,45 +491,49 @@ void Overlay::drawOverlay()
 
 	w_.draw(closeSprite_);
     w_.draw(lockSprite_);
-    w_.draw(volumeSprite_);
 
-    bool splitLine = false;
-	sf::Text line1(currentLyrics_[currentLine_].first, font_, 20);
-    line1.setFillColor(mainLineCol_);
-    sf::Text line2("", font_, 20);
-    line2.setFillColor(mainLineCol_);
-    //split the line into two if needed
-    if (line1.getGlobalBounds().width > titleBar_.width) {
-        std::string l = currentLyrics_[currentLine_].first;
-        const size_t mid = l.size() / 2;;
-        for (size_t d = 0; d < mid; d++) {
-            if (mid + d < l.size() && l[mid + d] == ' ') {
-                line1.setString(l.substr(0, mid + d));
-                line2.setString(l.substr(mid + d + 1, l.size()));
-                splitLine = true;
-                break;
-            }            
-            if (mid - d >= 0 && l[mid - d] == ' ') {
-                line1.setString(l.substr(0, mid - d));
-                line2.setString(l.substr(mid - d + 1, l.size()));
-                splitLine = true;
-                break;
+    //draw main line and progress/volume bar
+    if (!isContracted_) {
+        w_.draw(volumeSprite_);
+
+        bool splitLine = false;
+        sf::Text line1(currentLyrics_[currentLine_].first, font_, 20);
+        line1.setFillColor(mainLineCol_);
+        sf::Text line2("", font_, 20);
+        line2.setFillColor(mainLineCol_);
+        //split the line into two if needed
+        if (line1.getGlobalBounds().width > titleBar_.width) {
+            std::wstring l = currentLyrics_[currentLine_].first;
+            const size_t mid = l.size() / 2;;
+            for (size_t d = 0; d < mid; d++) {
+                if (mid + d < l.size() && l[mid + d] == ' ') {
+                    line1.setString(l.substr(0, mid + d));
+                    line2.setString(l.substr(mid + d + 1, l.size()));
+                    splitLine = true;
+                    break;
+                }
+                if (mid - d >= 0 && l[mid - d] == ' ') {
+                    line1.setString(l.substr(0, mid - d));
+                    line2.setString(l.substr(mid - d + 1, l.size()));
+                    splitLine = true;
+                    break;
+                }
             }
         }
-    }
 
-    line1.setOrigin(line1.getGlobalBounds().width / 2.f, line1.getGlobalBounds().height / 2.f);
-    line2.setOrigin(line2.getGlobalBounds().width / 2.f, line2.getGlobalBounds().height / 2.f);
+        line1.setOrigin(line1.getGlobalBounds().width / 2.f, line1.getGlobalBounds().height / 2.f);
+        line2.setOrigin(line2.getGlobalBounds().width / 2.f, line2.getGlobalBounds().height / 2.f);
 
-    //draw second line if needed
-    if (splitLine) {
-        line1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - 10);
-        line2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 10);
-        w_.draw(line2);
+        //draw second line if needed
+        if (splitLine) {
+            line1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - 11);
+            line2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 11);
+            w_.draw(line2);
+        }
+        else
+            line1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc);
+        w_.draw(line1);
     }
-    else
-        line1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc);
-    w_.draw(line1);
 
     w_.display();
     w_.setActive(false);
@@ -548,35 +584,6 @@ bool Overlay::getFirstToken()
     return true;
 }
 
-void Overlay::sendTokenToPlayer() const
-{
-    //create write-only named pipe
-    HANDLE hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\shareToken"), PIPE_ACCESS_DUPLEX,
-        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 512, 512, 0, NULL);
-
-    //failed to create the pipe (error 104)
-    if (hPipe == INVALID_HANDLE_VALUE) {
-        std::cerr << "error 104: " << GetLastError() << "\n";
-        std::exit(100);
-    }
-
-    while (true) {
-        //wait for a client to connect
-        if (ConnectNamedPipe(hPipe, NULL)) {
-            const char* msg = accessToken_.c_str();
-            DWORD bytesWritten;
-            BOOL success = WriteFile(hPipe, msg, (DWORD)strlen(msg), &bytesWritten, NULL);
-
-            //failed to send message through pipe (error 106)
-            if (!success) {
-                std::cerr << "error 106: " << GetLastError() << "\n";
-            }
-            
-            sf::sleep(sf::seconds(0.2f));
-        }
-        DisconnectNamedPipe(hPipe);
-    }
-}
 void Overlay::handleSongChange()
 {   
     //replace ' ' with '+'
@@ -587,18 +594,28 @@ void Overlay::handleSongChange()
 		return s;
     };
 
+    const float sleepTime = 0.7f;
     Request req = Request(Request::Methods::GET);
     req.url = "https://api.spotify.com/v1/me/player/currently-playing";
 
-    while (isRunning) {
+    while (isRunning_) {
         req.headers = { "Authorization: Bearer " + accessToken_ };
 		auto res = CurlWrapper::send(req);
 
-        //no song playing
+		//error 301 - failed to retrieve 'currently-playing' data
+		if (res.error != "") {
+            std::cerr << "error 301: failed to retrieve 'currently-playing' data\n";
+			sf::sleep(sf::seconds(sleepTime));
+			continue;
+		}
+
+		//error 302 - no song playing
 		if (res.code == 204) {
-            if (currentSong_ != "No Song Playing") {
-                currentSong_ = "No Song Playing";
-                currentLyrics_ = { { "No Lyrics", 0 } };
+            std::cerr << "error 302: no song is currently playing\n";
+
+            if (currentSong_ != L"No Song Playing") {
+                currentSong_ = L"No Song Playing";
+                currentLyrics_ = { { L"No Lyrics", 0 } };
                 currentArtists_.clear();
                 isPlaying_ = false;
                 drawOverlay();
@@ -608,11 +625,13 @@ void Overlay::handleSongChange()
 				drawOverlay();
             }
 
-            sf::sleep(sf::seconds(1));
+            sf::sleep(sf::seconds(sleepTime));
 			continue;
 		}
-        //refresh the expired token
+        //refresh the expired token (potential error 303)
         else if (res.code == 401) {
+            std::cout << "spotify api token is expired\n";
+
             Request rReq = Request(Request::Methods::POST);
             rReq.url = "https://accounts.spotify.com/api/token";
             rReq.headers = { "Content-Type: application/x-www-form-urlencoded" };
@@ -628,16 +647,17 @@ void Overlay::handleSongChange()
                 std::cout << "refreshed expired token\n";
                 continue;
             }
+			//error 303 - failed to refresh spotify token
             else {
-                std::cout << "ERROR (token refresh): " << rRes.code << "\n";
-                sf::sleep(sf::seconds(1));
+                std::cerr << "error 303: failed to refresh spotify token - " << rRes.code << "\n";
+                sf::sleep(sf::seconds(sleepTime));
                 continue;
             }
         }
-        //some other error
+        //error 304 - some other error
 		else if (res.code != 200) {
-			std::cout << "ERROR (song change): " << res.error << " - " << res.code << "\n";
-            sf::sleep(sf::seconds(1));
+			std::cerr << "error 304: failed to retrieve 'currently-playing' data - " << res.code << "\n";
+            sf::sleep(sf::seconds(sleepTime));
             continue;
 		}
 
@@ -646,27 +666,76 @@ void Overlay::handleSongChange()
         progress_ = json["progress_ms"];
         isPlaying_ = json["is_playing"];
 
-        //the content playing is not a song
+        //error 305 - content playing is not a track
         if (json["currently_playing_type"] != "track") {
-            currentSong_ = json["currently_playing_type"];
-            currentLyrics_ = { {"No Lyrics For This Type Of Content", 0} };
+            std::cerr << "error 305: content playing is not a track\n";
+
+            std::string name = json["currently_playing_type"];
+			std::wstring wName = L"";
+            for (int i = 0; i < name.size(); i++) {
+                if (int(name[i]) > 0)
+                    wName += wchar_t(name[i]);
+                else {
+                    unsigned char ubyte1 = unsigned char(name[i]);
+                    unsigned char ubyte2 = unsigned char(name[i + 1]);
+
+                    wchar_t codePoint = ((ubyte1 & 0x1F) << 6) | (ubyte2 & 0x3F);
+                    wName += codePoint;
+                    //skip the next byte
+                    i++;
+                }
+            }
+            currentSong_ = wName;
+            currentLyrics_ = { { L"No Lyrics For This Type Of Content", 0 } };
             currentArtists_ = { }, duration_ = 0, currentLine_ = 0;
 
             drawOverlay();
-            sf::sleep(sf::seconds(1));
+            sf::sleep(sf::seconds(sleepTime));
             continue;
         }
+        
+        std::string name = json["item"]["name"];
+        std::wstring wName = L"";
+        for (int i = 0; i < name.size(); i++) {
+            if (int(name[i]) > 0)
+                wName += wchar_t(name[i]);
+            else {
+                unsigned char ubyte1 = unsigned char(name[i]);
+                unsigned char ubyte2 = unsigned char(name[i + 1]);
+
+                wchar_t codePoint = ((ubyte1 & 0x1F) << 6) | (ubyte2 & 0x3F);
+                wName += codePoint;
+                //skip the next byte
+                i++;
+            }
+        }
         //new song detected
-        if (json["item"]["name"] != currentSong_) {
-		    currentSong_ = json["item"]["name"];
+        if (currentSong_ != wName) {
+            currentSong_ = wName;
             duration_ = json["item"]["duration_ms"];
             currentArtists_ = { }, currentLine_ = 0;
-            for (const auto& a : json["item"]["artists"])
-                currentArtists_.push_back(a["name"]);
+            for (const auto& a : json["item"]["artists"]) {
+				std::string aName = a["name"];
+                std::wstring wAName = L"";
+                for (int i = 0; i < aName.size(); i++) {
+                    if (int(aName[i]) > 0)
+                        wAName += wchar_t(aName[i]);
+                    else {
+                        unsigned char ubyte1 = unsigned char(aName[i]);
+                        unsigned char ubyte2 = unsigned char(aName[i + 1]);
+
+                        wchar_t codePoint = ((ubyte1 & 0x1F) << 6) | (ubyte2 & 0x3F);
+                        wAName += codePoint;
+                        //skip the next byte
+                        i++;
+                    }
+                }
+                currentArtists_.push_back(wAName);
+            }
 
             //request lyrics from LRCLIB
 			Request lReq = Request(Request::Methods::GET);
-            lReq.url = "https://lrclib.net/api/get?track_name=" + format(currentSong_) + 
+            lReq.url = "https://lrclib.net/api/get?track_name=" + format(json["item"]["name"]) +
                 "&artist_name=" + format(json["item"]["artists"][0]["name"]) + 
                 "&duration=" + std::to_string(int(json["item"]["duration_ms"] / 1000));
             std::cout << lReq.url << "\n";
@@ -674,12 +743,28 @@ void Overlay::handleSongChange()
 
 			//no lyrics found
             if (lRes.code != 200 || lRes.toJson()["syncedLyrics"].is_null())
-                currentLyrics_ = { { "No Lyrics", 0 } };
+                currentLyrics_ = { { L"No Lyrics", 0 } };
 			//process raw lyrics
             else {
-                currentLyrics_ = { { "", 0 } };
-                std::istringstream stream(std::string(lRes.toJson()["syncedLyrics"]));
-                std::string line;
+                currentLyrics_ = { { L"", 0 } };
+
+				std::string body = lRes.toJson()["syncedLyrics"];
+                std::wstring wBody = L"";
+                for (int i = 0; i < body.size(); i++) {
+                    if (int(body[i]) > 0)
+                        wBody += wchar_t(body[i]);
+                    else {
+                        unsigned char ubyte1 = unsigned char(body[i]);
+                        unsigned char ubyte2 = unsigned char(body[i + 1]);
+
+                        wchar_t codePoint = ((ubyte1 & 0x1F) << 6) | (ubyte2 & 0x3F);
+                        wBody += codePoint;
+                        //skip the next byte
+                        i++;
+                    }
+                }
+                std::wstringstream stream(wBody);
+                std::wstring line;
                 while (std::getline(stream, line)) {
                     if (line.empty()) 
                         continue;
@@ -698,7 +783,7 @@ void Overlay::handleSongChange()
                         line = line.substr(1, line.size());
 
                     auto& last = currentLyrics_[currentLyrics_.size() - 1];
-                    if (last.first == "" && time - last.second < 1'500)
+                    if (last.first == L"" && time - last.second < 1'500)
                         last = { line, std::max(0, time - 500) };
                     else
 					    currentLyrics_.push_back({ line, std::max(0, time - 500) });
@@ -710,33 +795,59 @@ void Overlay::handleSongChange()
             drawOverlay();
 
         //sleep before checking again
-        sf::sleep(sf::seconds(1));
+        sf::sleep(sf::seconds(sleepTime));
     }
 }
 void Overlay::scrollLyrics()
 {
-	while (isRunning) {
+	while (isRunning_) {
+        //error 300 - the lyrics are empty
+        if (currentLyrics_.empty()) {
+            std::cerr << "error 300: the lyrics are empty\n";
+			sf::sleep(sf::seconds(1));
+			continue;
+        }
         //the lyrics are empty
 		if (currentLyrics_.size() == 1) {
-			currentLine_ = 0;
+            if (currentLine_ != 0) {
+                currentLine_ = 0;
+                drawOverlay();
+            }
 			sf::sleep(sf::seconds(1));
 			continue;
 		}
 
 		int i = 0;
-		while (i < currentLyrics_.size() && currentLyrics_[i].second < progress_)
+		while (i < currentLyrics_.size() - 1 && currentLyrics_[size_t(i + 1)].second < progress_)
 			i++;
 
-        if (i == 0) {
-			std::cout << "LINE COUNTING ERROR\n";
-            std::exit(-1);
-        }
-
-        if (i - 1 != currentLine_) {
-			currentLine_ = i - 1;
+        if (i != currentLine_) {
+			currentLine_ = i;
 			drawOverlay();
         }
 
-		sf::sleep(sf::milliseconds(100));
+		sf::sleep(sf::milliseconds(70));
+    }
+}
+void Overlay::expandWindow()
+{
+    while (isRunning_) {
+        sf::sleep(sf::milliseconds(100));
+
+		if (!isContracted_)
+			continue;
+
+        sf::IntRect rect;
+		rect.width = wSize_.x;
+        rect.height = wSize_.y;
+
+		if (!rect.contains(sf::Mouse::getPosition(w_))) {
+			w_.setSize(sf::Vector2u(wSize_.x, wSize_.y));
+			w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, wSize_.y / 2.f), sf::Vector2f(w_.getSize())));
+
+			isContracted_ = false;
+            background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
+			drawOverlay();
+		}
     }
 }

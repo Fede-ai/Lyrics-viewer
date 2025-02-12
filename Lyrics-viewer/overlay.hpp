@@ -2,7 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include "cefapp.hpp"
 
-typedef std::pair<std::string, int> Line;
+typedef std::pair<std::wstring, int> Line;
 
 class Overlay {
 public:
@@ -18,12 +18,13 @@ private:
 
 	//blocking function that waits for auth
 	bool getFirstToken();
-	//on its own thread
-	void sendTokenToPlayer() const;
+
 	//on its own thread
 	void handleSongChange();
 	//on its own thread
 	void scrollLyrics();
+	//on its own thread
+	void expandWindow();
 
 	CefRefPtr<SimpleApp> app_;
 	sf::RenderWindow w_;
@@ -32,18 +33,18 @@ private:
 	std::string accessToken_ = "";
 	std::string refreshToken_ = "";
 	bool waitingAuth_ = true;
-	bool isRunning = true;
+	bool isRunning_ = true;
 	bool isContracted_ = false;
-	bool isLocked = false;
+	bool isLocked_ = false;
 
 	sf::Vector2i startMousePos_ = sf::Vector2i(-1, -1);
 	sf::Vector2i startWinPos_;
 
-	std::string currentSong_ = "No Song Playing";
-	std::vector<std::string> currentArtists_;
+	std::wstring currentSong_ = L"No Song Playing";
+	std::vector<std::wstring> currentArtists_;
 	int progress_ = 0;
 	int duration_ = 0;
-	std::vector<Line> currentLyrics_ = { { "No Lyrics", 0 } };
+	std::vector<Line> currentLyrics_ = { { L"No Lyrics", 0 } };
 	int currentLine_ = 0;
 	bool isPlaying_ = false;
 
@@ -65,14 +66,13 @@ private:
 
 	const sf::Color shadowWhite_ = sf::Color(200, 200, 200);
 	const sf::Color pressGray_ = sf::Color(160, 160, 160);
+	const sf::Color redClose_ = sf::Color(250, 50, 50);
 
-	const sf::Color bgCol_ = sf::Color(40, 40, 40, 210);
-	const sf::Color lightGray_ = sf::Color(130, 130, 130, 140);
-	const sf::Color darkGray_ = sf::Color(100, 100, 100, 140);
+	const sf::Color bgCol_ = sf::Color(50, 50, 50, 200);
+	const sf::Color lightGray_ = sf::Color(130, 130, 130, 150);
 
-	const sf::Color redClose_ = sf::Color(230, 30, 30, 140);
 	const sf::Color mainLineCol_ = sf::Color(255, 255, 255);
-	const sf::Color secLineCol_ = sf::Color(210, 210, 210);
+	const sf::Color secLineCol_ = sf::Color(220, 220, 220);
 
 	sf::Vector2i wSize_ = sf::Vector2i(0, 0);
 	sf::FloatRect titleBar_;

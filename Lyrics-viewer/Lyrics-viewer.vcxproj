@@ -112,6 +112,7 @@ endlocal</Command>
   <ItemGroup>
     <ClInclude Include="authclient.hpp" />
     <ClInclude Include="binding.hpp" />
+    <ClInclude Include="button.hpp" />
     <ClInclude Include="cefapp.hpp" />
     <ClInclude Include="overlay.hpp" />
     <ClInclude Include="curlwrapper.hpp" />

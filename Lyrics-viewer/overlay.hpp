@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include "button.hpp"
 #include "cefapp.hpp"
 
 typedef std::pair<std::wstring, int> Line;
@@ -49,24 +50,15 @@ private:
 	bool isPlaying_ = false;
 
 	sf::Font font_;
-	sf::Texture closeTexture_;
-	sf::Texture lockOpenTexture_;
-	sf::Texture lockCloseTexture_;
-	sf::Texture volumeTexture_;
-	sf::Texture	prevTexture_;
-	sf::Texture playTexture_;
-	sf::Texture pauseTexture_;
 
-	sf::Sprite closeSprite_;
-	sf::Sprite lockSprite_;
-	sf::Sprite volumeSprite_;
-	sf::Sprite prevSprite_;
-	sf::Sprite playSprite_;
-	sf::Sprite nextSprite_;
+	Button closeBut_, lockBut_, volumeBut_;
+	sf::Texture lockCloseTexture_;
+
+	Button prevBut_, playBut_, nextBut_;
+	sf::Texture pauseTexture_;
 
 	const sf::Color shadowWhite_ = sf::Color(200, 200, 200);
 	const sf::Color pressGray_ = sf::Color(160, 160, 160);
-	const sf::Color redClose_ = sf::Color(250, 50, 50);
 
 	const sf::Color bgCol_ = sf::Color(50, 50, 50, 200);
 	const sf::Color lightGray_ = sf::Color(130, 130, 130, 150);

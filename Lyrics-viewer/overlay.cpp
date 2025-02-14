@@ -12,49 +12,39 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 {
     float width = sf::VideoMode::getDesktopMode().width / 3.8f;
 	wSize_ = sf::Vector2i(int(width), int(width * .6f));
-
-    titleBar_ = sf::FloatRect(12, 12, wSize_.x - float(12 + 35), 25);
+    titleBar_ = sf::FloatRect(10, 10, wSize_.x - float(10 + 10 + 24), 25);
 	background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
-
     font_.loadFromFile("resources/AveriaSansLibre-Bold.ttf");
-	closeTexture_.loadFromFile("resources/close.png");
-    lockOpenTexture_.loadFromFile("resources/lock_open.png");
+
+	closeBut_.loadTexture("resources/close.png");
+    closeBut_.setColors(shadowWhite_, pressGray_, sf::Color(240, 30, 30));
+    closeBut_.sprite.setPosition(wSize_.x - 26.f, 4.f);
+
     lockCloseTexture_.loadFromFile("resources/lock_close.png");
-    volumeTexture_.loadFromFile("resources/volume.png");
-    prevTexture_.loadFromFile("resources/prev.png"); 
-    playTexture_.loadFromFile("resources/play.png");
+    lockBut_.loadTexture("resources/lock_open.png");
+    lockBut_.setColors(shadowWhite_, pressGray_, lightGray_);
+    lockBut_.sprite.setPosition(wSize_.x - 26.f, 25.f);
+
+    volumeBut_.loadTexture("resources/volume.png");
+    volumeBut_.setColors(shadowWhite_, pressGray_, lightGray_);
+    volumeBut_.sprite.setPosition(wSize_.x - 26.f, 46.f);
+    
+	prevBut_.loadTexture("resources/prev.png");
+    prevBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
+    prevBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 - 40 - 8,
+        titleBar_.top + titleBar_.height / 2.f - 8);
+
     pauseTexture_.loadFromFile("resources/pause.png");
+    playBut_.loadTexture("resources/play.png");
+    playBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
+    playBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 - 20 - 8,
+        titleBar_.top + titleBar_.height / 2.f - 8);
 
-	closeSprite_.setTexture(closeTexture_);
-    closeSprite_.setColor(shadowWhite_);
-    closeSprite_.setPosition(wSize_.x - 27.f, 6.f);
-
-    lockSprite_.setTexture(lockOpenTexture_);
-    lockSprite_.setColor(shadowWhite_);
-    lockSprite_.setPosition(wSize_.x - 27.f, 28.f);
-
-    volumeSprite_.setTexture(volumeTexture_);
-    volumeSprite_.setColor(shadowWhite_);
-    volumeSprite_.setPosition(wSize_.x - 27.f, 50.f);
-
-    prevSprite_.setTexture(prevTexture_);
-    prevSprite_.setPosition(titleBar_.left + titleBar_.width - 13 - 40,
-        titleBar_.top + titleBar_.height / 2.f);
-    prevSprite_.setOrigin(prevSprite_.getLocalBounds().width / 2.f,
-        prevSprite_.getLocalBounds().height / 2.f);
-
-    playSprite_.setTexture(playTexture_);
-    playSprite_.setOrigin(playSprite_.getLocalBounds().width / 2.f,
-        playSprite_.getLocalBounds().height / 2.f);
-    playSprite_.setPosition(titleBar_.left + titleBar_.width - 13 - 20,
-        titleBar_.top + titleBar_.height / 2.f);
-
-    nextSprite_.setTexture(prevTexture_);
-    nextSprite_.setScale(-1, 1);
-    nextSprite_.setPosition(titleBar_.left + titleBar_.width - 13,
-        titleBar_.top + titleBar_.height / 2.f);
-    nextSprite_.setOrigin(nextSprite_.getLocalBounds().width / 2.f,
-        nextSprite_.getLocalBounds().height / 2.f);
+    nextBut_.loadTexture("resources/prev.png");
+    nextBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
+    nextBut_.sprite.setScale(-1, 1);
+    nextBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 + 8,
+        titleBar_.top + titleBar_.height / 2.f - 8);
 }
 
 void Overlay::run()
@@ -98,8 +88,10 @@ void Overlay::run()
 	while (w_.isOpen()) {
 		sf::Event e;
 		if (w_.waitEvent(e)) {
-            if (handleEvent(e))
+            if (handleEvent(e)) {
+				//std::cout << "event-issued redraw\n";
                 drawOverlay(); 
+            }
 		}
 	}
 
@@ -120,7 +112,8 @@ bool Overlay::handleEvent(sf::Event e)
             w_.setPosition(startWinPos_ - startMousePos_ + sf::Mouse::getPosition());
 
 		bool needRedraw = false;
-        if (!isContracted_ && e.mouseMove.y > titleBar_.height + titleBar_.top * 2) {
+        //contract window
+        if (!isLocked_ && !isContracted_ && e.mouseMove.y > titleBar_.height + titleBar_.top * 2) {
             isContracted_ = true;
             background_ = sf::FloatRect(0, 0, float(wSize_.x), titleBar_.height + titleBar_.top * 2);
             drawOverlay();
@@ -129,6 +122,7 @@ bool Overlay::handleEvent(sf::Event e)
             w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, titleBar_.height / 2.f +
                 titleBar_.top), sf::Vector2f(w_.getSize())));
         }
+        //expand window (only one specific case)
 		else if (isContracted_ && e.mouseMove.y < titleBar_.height + titleBar_.top * 2) {
 			isContracted_ = false;
 			background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
@@ -137,66 +131,41 @@ bool Overlay::handleEvent(sf::Event e)
             needRedraw = true;
 		}
 
-        //make the close button dark gray (if mouse has just entered the sprite)
-        if (closeSprite_.getGlobalBounds().contains(float(e.mouseMove.x), float(e.mouseMove.y))) {
-            if (closeSprite_.getColor() == shadowWhite_) {
-                closeSprite_.setColor(pressGray_);
-                return true;
-            }
+        auto state = prevBut_.checkHover(e.mouseMove);
+        needRedraw = needRedraw || state.second;
+        if (state.first)
             return needRedraw;
-        }
-        //make the close button light gray
-        else if (closeSprite_.getColor() != shadowWhite_) {
-            closeSprite_.setColor(shadowWhite_);
-            return true;
-        }
 
-        //make the prev button shadow white (if mouse has just entered the sprite)
-        if (prevSprite_.getGlobalBounds().contains(float(e.mouseMove.x), float(e.mouseMove.y))) {
-            if (prevSprite_.getColor() == sf::Color::White) {
-                prevSprite_.setColor(shadowWhite_);
-                return true;
-            }
+        state = playBut_.checkHover(e.mouseMove);
+        needRedraw = needRedraw || state.second;
+        if (state.first)
             return needRedraw;
-        }
-        //make the prev button white
-        else if (prevSprite_.getColor() != sf::Color::White) {
-            prevSprite_.setColor(sf::Color::White);
-            return true;
-        }
 
-        //make the play button shadow white (if mouse has just entered the sprite)
-        if (playSprite_.getGlobalBounds().contains(float(e.mouseMove.x), float(e.mouseMove.y))) {
-            if (playSprite_.getColor() == sf::Color::White) {
-                playSprite_.setColor(shadowWhite_);
-                return true;
-            }
+        state = nextBut_.checkHover(e.mouseMove);
+        needRedraw = needRedraw || state.second;
+        if (state.first)
             return needRedraw;
-        }
-        //make the play button white
-        else if (playSprite_.getColor() != sf::Color::White) {
-            playSprite_.setColor(sf::Color::White);
-            return true;
-        }
 
-        //make the next button shadow white (if mouse has just entered the sprite)
-        if (nextSprite_.getGlobalBounds().contains(float(e.mouseMove.x), float(e.mouseMove.y))) {
-            if (nextSprite_.getColor() == sf::Color::White) {
-                nextSprite_.setColor(shadowWhite_);
-                return true;
-            }
+        state = closeBut_.checkHover(e.mouseMove);
+        needRedraw = needRedraw || state.second;
+        if (state.first)
             return needRedraw;
-        }
-        //make the next button white
-        else if (nextSprite_.getColor() != sf::Color::White) {
-            nextSprite_.setColor(sf::Color::White);
-            return true;
-        }
+
+        state = lockBut_.checkHover(e.mouseMove);
+        needRedraw = needRedraw || state.second;
+        if (state.first)
+            return needRedraw;
+
+        state = volumeBut_.checkHover(e.mouseMove);
+        needRedraw = needRedraw || state.second;
+        if (state.first)
+            return needRedraw;
 
 		return needRedraw;
     }
     else if (e.type == sf::Event::MouseEntered) {
-        if (sf::Mouse::getPosition(w_).y > titleBar_.height + titleBar_.top * 2) {
+		//contract window
+        if (!isLocked_ && sf::Mouse::getPosition(w_).y > titleBar_.height + titleBar_.top * 2) {
             isContracted_ = true;
             background_ = sf::FloatRect(0, 0, float(wSize_.x), titleBar_.height + titleBar_.top * 2);
             drawOverlay();
@@ -209,52 +178,31 @@ bool Overlay::handleEvent(sf::Event e)
     else if (e.type == sf::Event::MouseLeft) {
         bool needRedraw = false;
 
-        //make the close button light gray
-        if (closeSprite_.getColor() != shadowWhite_) {
-            closeSprite_.setColor(shadowWhite_);
-            needRedraw = true;
-        }
-        //make the prev button white
-        if (prevSprite_.getColor() != sf::Color::White) {
-            prevSprite_.setColor(sf::Color::White);
-            needRedraw = true;
-        }
-        //make the play button white
-        if (playSprite_.getColor() != sf::Color::White) {
-            playSprite_.setColor(sf::Color::White);
-            needRedraw = true;
-        }
-        //make the next button white
-        if (nextSprite_.getColor() != sf::Color::White) {
-            nextSprite_.setColor(sf::Color::White);
-            needRedraw = true;
-        }
+        needRedraw = needRedraw || prevBut_.mouseLeft();
+        needRedraw = needRedraw || playBut_.mouseLeft();
+        needRedraw = needRedraw || nextBut_.mouseLeft();
+        needRedraw = needRedraw || closeBut_.mouseLeft();
+        needRedraw = needRedraw || lockBut_.mouseLeft();
+        needRedraw = needRedraw || volumeBut_.mouseLeft();
 
         return needRedraw;
     }
     else if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left) {
-        //make the close button red
-        if (closeSprite_.getGlobalBounds().contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
-            closeSprite_.setColor(redClose_);
+        if (prevBut_.mouseDown(e.mouseButton))
             return true;
-        }
-        //make the prev button press gray
-        else if (prevSprite_.getGlobalBounds().contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
-            prevSprite_.setColor(pressGray_);
+        if (playBut_.mouseDown(e.mouseButton))
             return true;
-        }
-        //make the play button press gray
-        else if (playSprite_.getGlobalBounds().contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
-            playSprite_.setColor(pressGray_);
+        if (nextBut_.mouseDown(e.mouseButton))
             return true;
-        }
-        //make the next button press gray
-        else if (nextSprite_.getGlobalBounds().contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
-            nextSprite_.setColor(pressGray_);
+        if (closeBut_.mouseDown(e.mouseButton))
+            return true;		
+        if (lockBut_.mouseDown(e.mouseButton))
+            return true;		
+        if (volumeBut_.mouseDown(e.mouseButton))
             return true;
-        }
+
         //start moving
-        else if (titleBar_.contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
+        if (titleBar_.contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
             startMousePos_ = sf::Mouse::getPosition();
             startWinPos_ = w_.getPosition();
             return false;
@@ -263,19 +211,9 @@ bool Overlay::handleEvent(sf::Event e)
     else if (e.type == sf::Event::MouseButtonReleased && e.mouseButton.button == sf::Mouse::Left) {
         startMousePos_ = sf::Vector2i(-1, -1);
 
-        //close the window
-        if (closeSprite_.getGlobalBounds().contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
-            if (closeSprite_.getColor() == redClose_) {
-                w_.close();
-                return true;
-            }
-            return false;
-        }
-        //go to prev song
-        else if (prevSprite_.getGlobalBounds().contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
-            if (prevSprite_.getColor() == pressGray_) {
-                prevSprite_.setColor(shadowWhite_);
-                
+        auto state = prevBut_.mouseUp(e.mouseButton);
+        if (state.first) {
+            if (state.second) {
                 Request req(Request::Methods::POST);
                 req.headers = { "Authorization: Bearer " + accessToken_ };
                 req.url = "https://api.spotify.com/v1/me/player/previous";
@@ -283,16 +221,14 @@ bool Overlay::handleEvent(sf::Event e)
                 std::thread([req]() {
                     CurlWrapper::send(req);
                     }).detach();
-
-                return true;
             }
-            return false;
-        }
-        //pause - play
-        else if (playSprite_.getGlobalBounds().contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
-            if (playSprite_.getColor() == pressGray_) {
-                playSprite_.setColor(shadowWhite_);
 
+            return state.second;
+        }
+
+        state = playBut_.mouseUp(e.mouseButton);
+        if (state.first) {
+            if (state.second) {
                 Request req(Request::Methods::PUT);
                 req.headers = { "Authorization: Bearer " + accessToken_ };
 
@@ -304,16 +240,14 @@ bool Overlay::handleEvent(sf::Event e)
                 std::thread([req]() {
                     CurlWrapper::send(req);
                     }).detach();
-
-                return true;
             }
-            return false;
-        }
-        //go to next song
-        else if (nextSprite_.getGlobalBounds().contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
-            if (nextSprite_.getColor() == pressGray_) {
-                nextSprite_.setColor(shadowWhite_);
 
+            return state.second;
+        }
+
+        state = nextBut_.mouseUp(e.mouseButton);
+        if (state.first) {
+            if (state.second) {
                 Request req(Request::Methods::POST);
                 req.headers = { "Authorization: Bearer " + accessToken_ };
                 req.url = "https://api.spotify.com/v1/me/player/next";
@@ -321,10 +255,33 @@ bool Overlay::handleEvent(sf::Event e)
                 std::thread([req]() {
                     CurlWrapper::send(req);
                     }).detach();
-
-                return true;
             }
-            return false;
+
+            return state.second;
+        }
+
+        state = closeBut_.mouseUp(e.mouseButton);
+        if (state.first) {
+            if (state.second)
+                w_.close();
+
+            return state.second;
+        }
+
+        state = lockBut_.mouseUp(e.mouseButton);
+        if (state.first) {
+            if (state.second)
+				isLocked_ = !isLocked_;
+
+            return state.second;
+        }
+
+        state = volumeBut_.mouseUp(e.mouseButton);
+        if (state.first) {
+            if (state.second)
+				std::cout << "VOLUME\n";
+
+            return state.second;
         }
     }
 
@@ -333,7 +290,9 @@ bool Overlay::handleEvent(sf::Event e)
 void Overlay::drawOverlay()
 {
     //std::cout << "redrawing overlay\n";
-    const float vc = (titleBar_.top + titleBar_.height + w_.getSize().y) / 2.f - 4;
+    const float vc = titleBar_.top * 2 + titleBar_.height - 10
+        + (w_.getSize().y - titleBar_.top * 2 - titleBar_.height) / 2.f;
+
     const auto buildRect = [](sf::FloatRect fr, float r, int n, sf::Color c) {
 		auto p = fr.getPosition();
 		auto s = fr.getSize();
@@ -365,7 +324,7 @@ void Overlay::drawOverlay()
     mutex_.lock();
     w_.setActive(true);
     w_.clear(sf::Color::Transparent);
-    w_.draw(buildRect(background_, 20, 7, bgCol_));
+    w_.draw(buildRect(background_, 18, 7, bgCol_));
 
 	//draw previous and next lines
     if (!isContracted_) {
@@ -477,24 +436,21 @@ void Overlay::drawOverlay()
     }
     if (isTitleShortened)
         title.setString(titleStr + L"...");
-    title.setPosition(titleBar_.left + 8, 15);
+    title.setPosition(titleBar_.left + 7, 13);
     w_.draw(title);
 
-    if (isPlaying_)
-        playSprite_.setTexture(pauseTexture_);
-    else
-        playSprite_.setTexture(playTexture_);
-    w_.draw(playSprite_);
+    w_.draw(prevBut_.sprite);
+    playBut_.sprite.setTexture(isPlaying_ ? pauseTexture_ : playBut_.texture);
+    w_.draw(playBut_.sprite);
+    w_.draw(nextBut_.sprite);
 
-    w_.draw(prevSprite_);
-    w_.draw(nextSprite_);
-
-	w_.draw(closeSprite_);
-    w_.draw(lockSprite_);
+	w_.draw(closeBut_.sprite);
+    lockBut_.sprite.setTexture(isLocked_ ? lockCloseTexture_ : lockBut_.texture);
+    w_.draw(lockBut_.sprite);
 
     //draw main line and progress/volume bar
     if (!isContracted_) {
-        w_.draw(volumeSprite_);
+        w_.draw(volumeBut_.sprite);
 
         bool splitLine = false;
         sf::Text line1(currentLyrics_[currentLine_].first, font_, 20);

@@ -1,12 +1,12 @@
 const urlParams = new URLSearchParams(window.location.search);
 let code = urlParams.get('code'), error = urlParams.get('error');
 
-const redirectUri = 'http://fede-ai.github.io/Lyrics-viewer/redirect.html';
 const clientId = '244ba241897d4c969d1260ad0c844f91';
+const redirectUri = 'https://fede-ai.github.io/Lyrics-viewer/redirect.html';
 
 //not from my app
 if (typeof(sendToCpp) !== typeof(Function)) {
-	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/external.html';
+	window.location.href = 'https://fede-ai.github.io/Lyrics-viewer/external.html';
 }
 //redirect to spotify login
 else if (!code && !error) {
@@ -83,8 +83,8 @@ else if (code) {
 		sendToCpp(`s${response.access_token}+${response.refresh_token}`);
 	}) 
 }
-//fail after sporify login
+//fail after spotify login
 else if (error) {
 	window.localStorage.setItem('error', error);
-	window.location.href = 'http://fede-ai.github.io/Lyrics-viewer/fail.html';
+	window.location.href = 'https://fede-ai.github.io/Lyrics-viewer/fail.html';
 }

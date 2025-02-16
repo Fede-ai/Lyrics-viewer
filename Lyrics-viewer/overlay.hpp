@@ -58,10 +58,12 @@ private:
 	sf::Texture pauseTexture_;
 
 	const sf::Color shadowWhite_ = sf::Color(200, 200, 200);
-	const sf::Color pressGray_ = sf::Color(160, 160, 160);
+	const sf::Color pressGray_ = sf::Color(150, 150, 150);
 
-	const sf::Color bgCol_ = sf::Color(50, 50, 50, 200);
-	const sf::Color lightGray_ = sf::Color(130, 130, 130, 150);
+	//background rectangle color
+	const sf::Color bgGray_ = sf::Color(50, 50, 50, 200);
+	//titlebar color
+	const sf::Color tbGray_ = sf::Color(130, 130, 130, 150);
 
 	const sf::Color mainLineCol_ = sf::Color(255, 255, 255);
 	const sf::Color secLineCol_ = sf::Color(220, 220, 220);

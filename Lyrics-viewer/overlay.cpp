@@ -12,22 +12,22 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 {
     float width = sf::VideoMode::getDesktopMode().width / 3.8f;
 	wSize_ = sf::Vector2i(int(width), int(width * .6f));
-    titleBar_ = sf::FloatRect(10, 10, wSize_.x - float(10 + 10 + 24), 25);
+    titleBar_ = sf::FloatRect(11, 11, wSize_.x - float(10 + 10 + 24), 25);
 	background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
     font_.loadFromFile("resources/AveriaSansLibre-Bold.ttf");
 
 	closeBut_.loadTexture("resources/close.png");
-    closeBut_.setColors(shadowWhite_, pressGray_, sf::Color(240, 30, 30));
-    closeBut_.sprite.setPosition(wSize_.x - 26.f, 4.f);
+    closeBut_.setColors(sf::Color::White, shadowWhite_, sf::Color(240, 30, 30));
+    closeBut_.sprite.setPosition(wSize_.x - 27.f, 5.f);
 
     lockCloseTexture_.loadFromFile("resources/lock_close.png");
     lockBut_.loadTexture("resources/lock_open.png");
-    lockBut_.setColors(shadowWhite_, pressGray_, lightGray_);
-    lockBut_.sprite.setPosition(wSize_.x - 26.f, 25.f);
+    lockBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
+    lockBut_.sprite.setPosition(wSize_.x - 26.f, 25.5f);
 
     volumeBut_.loadTexture("resources/volume.png");
-    volumeBut_.setColors(shadowWhite_, pressGray_, lightGray_);
-    volumeBut_.sprite.setPosition(wSize_.x - 26.f, 46.f);
+    volumeBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
+    volumeBut_.sprite.setPosition(wSize_.x - 27.f, 47.5f);
     
 	prevBut_.loadTexture("resources/prev.png");
     prevBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
@@ -324,7 +324,7 @@ void Overlay::drawOverlay()
     mutex_.lock();
     w_.setActive(true);
     w_.clear(sf::Color::Transparent);
-    w_.draw(buildRect(background_, 18, 7, bgCol_));
+    w_.draw(buildRect(background_, 18, 7, bgGray_));
 
 	//draw previous and next lines
     if (!isContracted_) {
@@ -412,7 +412,7 @@ void Overlay::drawOverlay()
         }
     }
 
-    w_.draw(buildRect(titleBar_, 10, 7, lightGray_));
+    w_.draw(buildRect(titleBar_, 10, 7, tbGray_));
     std::wstring titleStr = currentSong_;
 	//add artists to the title
     for (int i = 0; i < currentArtists_.size(); i++) {
@@ -426,7 +426,7 @@ void Overlay::drawOverlay()
     sf::Text title(titleStr, font_, 14);
 	//truncate the title if it's too long
     bool isTitleShortened = false;
-    while (title.getGlobalBounds().width > titleBar_.width - 85) {
+    while (title.getGlobalBounds().width > titleBar_.width - 90) {
         titleStr.resize(titleStr.size() - 1);
         if (titleStr[titleStr.size() - 1] == ' ')
             titleStr.resize(titleStr.size() - 1);
@@ -436,7 +436,7 @@ void Overlay::drawOverlay()
     }
     if (isTitleShortened)
         title.setString(titleStr + L"...");
-    title.setPosition(titleBar_.left + 7, 13);
+    title.setPosition(titleBar_.left + 8, titleBar_.top + 3);
     w_.draw(title);
 
     w_.draw(prevBut_.sprite);
@@ -447,11 +447,10 @@ void Overlay::drawOverlay()
 	w_.draw(closeBut_.sprite);
     lockBut_.sprite.setTexture(isLocked_ ? lockCloseTexture_ : lockBut_.texture);
     w_.draw(lockBut_.sprite);
+    w_.draw(volumeBut_.sprite);
 
     //draw main line and progress/volume bar
     if (!isContracted_) {
-        w_.draw(volumeBut_.sprite);
-
         bool splitLine = false;
         sf::Text line1(currentLyrics_[currentLine_].first, font_, 20);
         line1.setFillColor(mainLineCol_);

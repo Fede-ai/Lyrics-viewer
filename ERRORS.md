@@ -16,4 +16,3 @@
 - `error 302` - no song is currently playing (overlay.cpp)
 - `error 303` - failed to refresh spotify token (overlay.cpp)
 - `error 304` - failed to retrieve 'currently-playing' data (overlay.cpp)
-- `error 305` - content playing is not a track (overlay.cpp)

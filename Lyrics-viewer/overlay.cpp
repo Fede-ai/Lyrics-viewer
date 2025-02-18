@@ -18,16 +18,16 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 
 	closeBut_.loadTexture("resources/close.png");
     closeBut_.setColors(sf::Color::White, shadowWhite_, sf::Color(240, 30, 30));
-    closeBut_.sprite.setPosition(wSize_.x - 27.f, 5.f);
+    closeBut_.sprite.setPosition(wSize_.x - 26.f, 5.f);
 
     lockCloseTexture_.loadFromFile("resources/lock_close.png");
     lockBut_.loadTexture("resources/lock_open.png");
     lockBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
-    lockBut_.sprite.setPosition(wSize_.x - 26.f, 25.5f);
+    lockBut_.sprite.setPosition(wSize_.x - 25.f, 25.5f);
 
     volumeBut_.loadTexture("resources/volume.png");
     volumeBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
-    volumeBut_.sprite.setPosition(wSize_.x - 27.f, 47.5f);
+    volumeBut_.sprite.setPosition(wSize_.x - 26.f, 47.5f);
     
 	prevBut_.loadTexture("resources/prev.png");
     prevBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
@@ -279,7 +279,7 @@ bool Overlay::handleEvent(sf::Event e)
         state = volumeBut_.mouseUp(e.mouseButton);
         if (state.first) {
             if (state.second)
-				std::cout << "VOLUME\n";
+                isVolume_ = !isVolume_;
 
             return state.second;
         }
@@ -298,7 +298,7 @@ void Overlay::drawOverlay()
 		auto s = fr.getSize();
 
         sf::VertexArray rect(sf::TriangleFan, 1);
-        rect[0].position = { (p.x + s.x) / 2.f, (p.y + s.y) / 2.f };
+        rect[0].position = { p.x + s.x / 2.f, p.y + s.y / 2.f };
         rect[0].color = c;
 
         for (int i = 0; i < 4 * n + 1; i++) {
@@ -326,7 +326,7 @@ void Overlay::drawOverlay()
     w_.clear(sf::Color::Transparent);
     w_.draw(buildRect(background_, 18, 7, bgGray_));
 
-	//draw previous and next lines
+	//draw the lyrics (prev, current, next)
     if (!isContracted_) {
         const int lineDist = 50;
 
@@ -410,47 +410,7 @@ void Overlay::drawOverlay()
                 next1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 2 + lineDist);
             w_.draw(next1);
         }
-    }
 
-    w_.draw(buildRect(titleBar_, 10, 7, tbGray_));
-    std::wstring titleStr = currentSong_;
-	//add artists to the title
-    for (int i = 0; i < currentArtists_.size(); i++) {
-        if (i == 0)
-            titleStr += L" - ";
-        else
-            titleStr += L", ";
-    
-        titleStr += currentArtists_[i];
-    }
-    sf::Text title(titleStr, font_, 14);
-	//truncate the title if it's too long
-    bool isTitleShortened = false;
-    while (title.getGlobalBounds().width > titleBar_.width - 90) {
-        titleStr.resize(titleStr.size() - 1);
-        if (titleStr[titleStr.size() - 1] == ' ')
-            titleStr.resize(titleStr.size() - 1);
-        
-        title.setString(titleStr);
-        isTitleShortened = true;
-    }
-    if (isTitleShortened)
-        title.setString(titleStr + L"...");
-    title.setPosition(titleBar_.left + 8, titleBar_.top + 3);
-    w_.draw(title);
-
-    w_.draw(prevBut_.sprite);
-    playBut_.sprite.setTexture(isPlaying_ ? pauseTexture_ : playBut_.texture);
-    w_.draw(playBut_.sprite);
-    w_.draw(nextBut_.sprite);
-
-	w_.draw(closeBut_.sprite);
-    lockBut_.sprite.setTexture(isLocked_ ? lockCloseTexture_ : lockBut_.texture);
-    w_.draw(lockBut_.sprite);
-    w_.draw(volumeBut_.sprite);
-
-    //draw main line and progress/volume bar
-    if (!isContracted_) {
         bool splitLine = false;
         sf::Text line1(currentLyrics_[currentLine_].first, font_, 20);
         line1.setFillColor(mainLineCol_);
@@ -488,6 +448,59 @@ void Overlay::drawOverlay()
         else
             line1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc);
         w_.draw(line1);
+    }
+
+	//draw the title bar
+    w_.draw(buildRect(titleBar_, 10, 7, tbGray_));
+	//add artists to the title
+    std::wstring titleStr = currentSong_;
+    for (int i = 0; i < currentArtists_.size(); i++) {
+        if (i == 0)
+            titleStr += L" - ";
+        else
+            titleStr += L", ";
+    
+        titleStr += currentArtists_[i];
+    }
+    sf::Text title(titleStr, font_, 14);
+	//truncate the title if it's too long
+    bool isTitleShortened = false;
+    while (title.getGlobalBounds().width > titleBar_.width - 90) {
+        titleStr.resize(titleStr.size() - 1);
+        if (titleStr[titleStr.size() - 1] == ' ')
+            titleStr.resize(titleStr.size() - 1);
+        
+        title.setString(titleStr);
+        isTitleShortened = true;
+    }
+    if (isTitleShortened)
+        title.setString(titleStr + L"...");
+    title.setPosition(titleBar_.left + 8, titleBar_.top + 3);
+    w_.draw(title);
+
+	//draw the control buttons
+    w_.draw(prevBut_.sprite);
+    playBut_.sprite.setTexture(isPlaying_ ? pauseTexture_ : playBut_.texture);
+    w_.draw(playBut_.sprite);
+    w_.draw(nextBut_.sprite);
+
+	w_.draw(closeBut_.sprite);
+    lockBut_.sprite.setTexture(isLocked_ ? lockCloseTexture_ : lockBut_.texture);
+    w_.draw(lockBut_.sprite);
+
+    //draw the progress/volume bar
+    if (!isContracted_) {
+        w_.draw(volumeBut_.sprite);
+
+        sf::FloatRect barBg(wSize_.x - 21.f, 71, 6, wSize_.y - 92.f);
+        w_.draw(buildRect(barBg, 3, 4, tbGray_));
+
+        float barPercent = (duration_ == 0) ? 0 : progress_ / float(duration_);
+        if (isVolume_)
+			barPercent = volumePercent_ / 100.f;
+
+        sf::FloatRect bar(wSize_.x - 21.f, 71, 6, 6 + (wSize_.y - 98.f) * barPercent);
+        w_.draw(buildRect(bar, 3, 4, sf::Color::White));
     }
 
     w_.display();
@@ -617,31 +630,30 @@ void Overlay::handleSongChange()
 		}
 
 		auto json = res.toJson();
-        bool needRedraw = progress_ != json["progress_ms"] || isPlaying_ != json["is_playing"];
-        progress_ = json["progress_ms"];
+        bool needRedraw = isPlaying_ != json["is_playing"];
         isPlaying_ = json["is_playing"];
+		//redraw if progress has changed
+        if (!json["progress_ms"].is_null()) {
+            needRedraw = (progress_ != json["progress_ms"]) || needRedraw;
+            progress_ = json["progress_ms"];
+        }
+        //redraw if volume has changed
+		if (!json["device"]["volume_percent"].is_null()) {
+			needRedraw = (volumePercent_ != json["device"]["volume_percent"]) || needRedraw;
+			volumePercent_ = json["device"]["volume_percent"];
+		}
+        //set default volume to 0
+        else {
+			needRedraw = (volumePercent_ != 0) || needRedraw;
+			volumePercent_ = 0;
+        }
 
-        //error 305 - content playing is not a track
-        if (json["currently_playing_type"] != "track") {
-            std::cerr << "error 305: content playing is not a track\n";
-
-            std::string name = json["currently_playing_type"];
-			std::wstring wName = L"";
-            for (int i = 0; i < name.size(); i++) {
-                if (int(name[i]) > 0)
-                    wName += wchar_t(name[i]);
-                else {
-                    unsigned char ubyte1 = unsigned char(name[i]);
-                    unsigned char ubyte2 = unsigned char(name[i + 1]);
-
-                    wchar_t codePoint = ((ubyte1 & 0x1F) << 6) | (ubyte2 & 0x3F);
-                    wName += codePoint;
-                    //skip the next byte
-                    i++;
-                }
-            }
-            currentSong_ = wName;
-            currentLyrics_ = { { L"No Lyrics For This Type Of Content", 0 } };
+        std::string oldType = currentType_;
+        currentType_ = json["currently_playing_type"];
+		//a content that is not a 'track' started playing
+        if (currentType_ != oldType && currentType_ != "track") {
+			currentSong_ = std::wstring(currentType_.begin(), currentType_.end()) + L" - No Lyrics";
+            currentLyrics_ = { { L"No Lyrics Available For This Type Of Content", 0 } };
             currentArtists_ = { }, duration_ = 0, currentLine_ = 0;
 
             drawOverlay();
@@ -649,6 +661,12 @@ void Overlay::handleSongChange()
             continue;
         }
         
+		//skip if the current type is not 'track' or if the item is null
+        if (currentType_ != "track" || json["item"].is_null()) {
+            sf::sleep(sf::seconds(sleepTime));
+            continue;
+        }
+
         std::string name = json["item"]["name"];
         std::wstring wName = L"";
         for (int i = 0; i < name.size(); i++) {
@@ -698,7 +716,7 @@ void Overlay::handleSongChange()
 
 			//no lyrics found
             if (lRes.code != 200 || lRes.toJson()["syncedLyrics"].is_null())
-                currentLyrics_ = { { L"No Lyrics", 0 } };
+                currentLyrics_ = { { L"No Lyrics Available", 0 } };
 			//process raw lyrics
             else {
                 currentLyrics_ = { { L"", 0 } };
@@ -718,6 +736,7 @@ void Overlay::handleSongChange()
                         i++;
                     }
                 }
+
                 std::wstringstream stream(wBody);
                 std::wstring line;
                 while (std::getline(stream, line)) {

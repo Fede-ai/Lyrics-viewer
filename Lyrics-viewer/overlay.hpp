@@ -37,16 +37,19 @@ private:
 	bool isRunning_ = true;
 	bool isContracted_ = false;
 	bool isLocked_ = false;
+	bool isVolume_ = false;
 
 	sf::Vector2i startMousePos_ = sf::Vector2i(-1, -1);
 	sf::Vector2i startWinPos_;
 
+	std::string currentType_ = "";
 	std::wstring currentSong_ = L"No Song Playing";
 	std::vector<std::wstring> currentArtists_;
-	int progress_ = 0;
-	int duration_ = 0;
 	std::vector<Line> currentLyrics_ = { { L"No Lyrics", 0 } };
 	int currentLine_ = 0;
+	int volumePercent_ = 0;
+	int progress_ = 0;
+	int duration_ = 0;
 	bool isPlaying_ = false;
 
 	sf::Font font_;
@@ -60,9 +63,7 @@ private:
 	const sf::Color shadowWhite_ = sf::Color(200, 200, 200);
 	const sf::Color pressGray_ = sf::Color(150, 150, 150);
 
-	//background rectangle color
 	const sf::Color bgGray_ = sf::Color(50, 50, 50, 200);
-	//titlebar color
 	const sf::Color tbGray_ = sf::Color(130, 130, 130, 150);
 
 	const sf::Color mainLineCol_ = sf::Color(255, 255, 255);

@@ -12,9 +12,19 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 {
     float width = sf::VideoMode::getDesktopMode().width / 3.8f;
 	wSize_ = sf::Vector2i(int(width), int(width * .6f));
+    wSize_.x = std::max(wSize_.x, 350), wSize_.y = std::max(wSize_.y, 200);
+
     titleBar_ = sf::FloatRect(11, 11, wSize_.x - float(10 + 10 + 24), 25);
 	background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
     font_.loadFromFile("resources/AveriaSansLibre-Bold.ttf");
+
+    defaultCursor_.loadFromSystem(sf::Cursor::Arrow);
+    resizeCursor_.loadFromSystem(sf::Cursor::SizeTopRight);
+
+    resizeTexture_.loadFromFile("resources/resize.png");
+    resizeSprite_.setTexture(resizeTexture_);
+    resizeSprite_.setColor(shadowWhite_);
+    resizeSprite_.setPosition(0, wSize_.y - resizeSprite_.getLocalBounds().height);
 
 	closeBut_.loadTexture("resources/close.png");
     closeBut_.setColors(sf::Color::White, shadowWhite_, sf::Color(240, 30, 30));
@@ -108,8 +118,36 @@ bool Overlay::handleEvent(sf::Event e)
         return true;
     }
     else if (e.type == sf::Event::MouseMoved) {
-        if (startMousePos_ != sf::Vector2i(-1, -1))
-            w_.setPosition(startWinPos_ - startMousePos_ + sf::Mouse::getPosition());
+        if (e.mouseMove.y > (wSize_.y - 30) + e.mouseMove.x && !isContracted_)
+            w_.setMouseCursor(resizeCursor_);
+        else if (resizeStartMousePos_ == sf::Vector2i(-1, -1))
+            w_.setMouseCursor(defaultCursor_);
+
+        if (moveStartMousePos_ != sf::Vector2i(-1, -1))
+            w_.setPosition(startWinPos_ - moveStartMousePos_ + sf::Mouse::getPosition());
+        else if (resizeStartMousePos_ != sf::Vector2i(-1, -1)) {
+            int x = std::max(startWinSize_.x + resizeStartMousePos_.x - sf::Mouse::getPosition().x, 350);
+            int y = std::max(startWinSize_.y - resizeStartMousePos_.y + sf::Mouse::getPosition().y, 200);
+            
+            wSize_ = sf::Vector2i(x, y);
+            titleBar_ = sf::FloatRect(11, 11, wSize_.x - float(10 + 10 + 24), 25);
+            background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
+            resizeSprite_.setPosition(0, wSize_.y - resizeSprite_.getLocalBounds().height);
+            closeBut_.sprite.setPosition(wSize_.x - 26.f, 5.f);
+            lockBut_.sprite.setPosition(wSize_.x - 25.f, 25.5f);
+            volumeBut_.sprite.setPosition(wSize_.x - 26.f, 47.5f);
+            prevBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 - 40 - 8,
+                titleBar_.top + titleBar_.height / 2.f - 8);
+            playBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 - 20 - 8,
+                titleBar_.top + titleBar_.height / 2.f - 8);
+            nextBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 + 8,
+                titleBar_.top + titleBar_.height / 2.f - 8);
+
+            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, wSize_.y / 2.f), sf::Vector2f(x, y)));
+            w_.setPosition(sf::Vector2i(startWinPos_.x + startWinSize_.x - x, startWinPos_.y));
+            w_.setSize(sf::Vector2u(x, y));
+            return true;
+        }
 
 		bool needRedraw = false;
         //contract window
@@ -203,13 +241,21 @@ bool Overlay::handleEvent(sf::Event e)
 
         //start moving
         if (titleBar_.contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
-            startMousePos_ = sf::Mouse::getPosition();
+            moveStartMousePos_ = sf::Mouse::getPosition();
+            startWinPos_ = w_.getPosition();
+            return false;
+        }
+        //start resizing
+        if (e.mouseButton.y > (wSize_.y - 30) + e.mouseButton.x && !isContracted_) {
+            resizeStartMousePos_ = sf::Mouse::getPosition();
+            startWinSize_ = sf::Vector2i(w_.getSize());
             startWinPos_ = w_.getPosition();
             return false;
         }
     }
     else if (e.type == sf::Event::MouseButtonReleased && e.mouseButton.button == sf::Mouse::Left) {
-        startMousePos_ = sf::Vector2i(-1, -1);
+        moveStartMousePos_ = sf::Vector2i(-1, -1);
+        resizeStartMousePos_ = sf::Vector2i(-1, -1);
 
         auto state = prevBut_.mouseUp(e.mouseButton);
         if (state.first) {
@@ -491,6 +537,7 @@ void Overlay::drawOverlay()
     //draw the progress/volume bar
     if (!isContracted_) {
         w_.draw(volumeBut_.sprite);
+        w_.draw(resizeSprite_);
 
         sf::FloatRect barBg(wSize_.x - 21.f, 71, 6, wSize_.y - 92.f);
         w_.draw(buildRect(barBg, 3, 4, tbGray_));
@@ -744,7 +791,10 @@ void Overlay::handleSongChange()
                         continue;
 
                     line = line.substr(line.find_first_of('[') + 1, line.size());
-					int time = 60'000 * std::stoi(line.substr(0, line.find_first_of(':')));
+                    while (!(line[0] >= '0' && line[0] <= '9') && line[0] != ':')
+                        line = line.substr(1, line.size());
+
+                    int time = 60'000 * std::stoi(line.substr(0, line.find_first_of(':')));
 					line = line.substr(line.find_first_of(':') + 1, line.size());
 
 					time += 1'000 * std::stoi(line.substr(0, line.find_first_of('.')));

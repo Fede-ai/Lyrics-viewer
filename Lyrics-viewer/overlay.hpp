@@ -39,8 +39,9 @@ private:
 	bool isLocked_ = false;
 	bool isVolume_ = false;
 
-	sf::Vector2i startMousePos_ = sf::Vector2i(-1, -1);
-	sf::Vector2i startWinPos_;
+	sf::Vector2i moveStartMousePos_ = sf::Vector2i(-1, -1);
+	sf::Vector2i resizeStartMousePos_ = sf::Vector2i(-1, -1);
+	sf::Vector2i startWinPos_, startWinSize_;
 
 	std::string currentType_ = "";
 	std::wstring currentSong_ = L"No Song Playing";
@@ -52,7 +53,12 @@ private:
 	int duration_ = 0;
 	bool isPlaying_ = false;
 
+	sf::Cursor defaultCursor_;
+	sf::Cursor resizeCursor_;
+
 	sf::Font font_;
+	sf::Texture resizeTexture_;
+	sf::Sprite resizeSprite_;
 
 	Button closeBut_, lockBut_, volumeBut_;
 	sf::Texture lockCloseTexture_;

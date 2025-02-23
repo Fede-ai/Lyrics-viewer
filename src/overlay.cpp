@@ -10,47 +10,51 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 	:
 	app_(inApp)
 {
+    char rawPath[256];
+    GetModuleFileNameA(NULL, rawPath, 256);
+    std::string path = std::string(rawPath).substr(0, std::string(rawPath).find_last_of('\\'));
+
     float width = sf::VideoMode::getDesktopMode().width / 3.8f;
 	wSize_ = sf::Vector2i(int(width), int(width * .6f));
     wSize_.x = std::max(wSize_.x, 350), wSize_.y = std::max(wSize_.y, 200);
 
     titleBar_ = sf::FloatRect(11, 11, wSize_.x - float(10 + 10 + 24), 25);
 	background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
-    font_.loadFromFile("resources/AveriaSansLibre-Bold.ttf");
+    font_.loadFromFile(path + "/resources/AveriaSansLibre-Bold.ttf");
 
     defaultCursor_.loadFromSystem(sf::Cursor::Arrow);
     resizeCursor_.loadFromSystem(sf::Cursor::SizeTopRight);
 
-    resizeTexture_.loadFromFile("resources/resize.png");
+    resizeTexture_.loadFromFile(path + "/resources/resize.png");
     resizeSprite_.setTexture(resizeTexture_);
     resizeSprite_.setColor(shadowWhite_);
     resizeSprite_.setPosition(0, wSize_.y - resizeSprite_.getLocalBounds().height);
 
-	closeBut_.loadTexture("resources/close.png");
+	closeBut_.loadTexture(path + "/resources/close.png");
     closeBut_.setColors(sf::Color::White, shadowWhite_, sf::Color(240, 30, 30));
     closeBut_.sprite.setPosition(wSize_.x - 26.f, 5.f);
 
-    lockCloseTexture_.loadFromFile("resources/lock_close.png");
-    lockBut_.loadTexture("resources/lock_open.png");
+    lockCloseTexture_.loadFromFile(path + "/resources/lock_close.png");
+    lockBut_.loadTexture(path + "/resources/lock_open.png");
     lockBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
     lockBut_.sprite.setPosition(wSize_.x - 25.f, 25.5f);
 
-    volumeBut_.loadTexture("resources/volume.png");
+    volumeBut_.loadTexture(path + "/resources/volume.png");
     volumeBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
     volumeBut_.sprite.setPosition(wSize_.x - 26.f, 47.5f);
     
-	prevBut_.loadTexture("resources/prev.png");
+	prevBut_.loadTexture(path + "/resources/prev.png");
     prevBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
     prevBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 - 40 - 8,
         titleBar_.top + titleBar_.height / 2.f - 8);
 
-    pauseTexture_.loadFromFile("resources/pause.png");
-    playBut_.loadTexture("resources/play.png");
+    pauseTexture_.loadFromFile(path + "/resources/pause.png");
+    playBut_.loadTexture(path + "/resources/play.png");
     playBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
     playBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 - 20 - 8,
         titleBar_.top + titleBar_.height / 2.f - 8);
 
-    nextBut_.loadTexture("resources/prev.png");
+    nextBut_.loadTexture(path + "/resources/prev.png");
     nextBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
     nextBut_.sprite.setScale(-1, 1);
     nextBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 + 8,
@@ -143,7 +147,7 @@ bool Overlay::handleEvent(sf::Event e)
             nextBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 + 8,
                 titleBar_.top + titleBar_.height / 2.f - 8);
 
-            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, wSize_.y / 2.f), sf::Vector2f(x, y)));
+            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, wSize_.y / 2.f), sf::Vector2f(float(x), float(y))));
             w_.setPosition(sf::Vector2i(startWinPos_.x + startWinSize_.x - x, startWinPos_.y));
             w_.setSize(sf::Vector2u(x, y));
             return true;
@@ -558,7 +562,7 @@ void Overlay::drawOverlay()
 bool Overlay::getFirstToken()
 {
     //create read-only named pipe
-    HANDLE hPipe = CreateNamedPipeW(TEXT("\\\\.\\pipe\\firstToken"), PIPE_ACCESS_INBOUND,
+    HANDLE hPipe = CreateNamedPipeW(TEXT(L"\\\\.\\pipe\\firstToken"), PIPE_ACCESS_INBOUND,
         PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 0, 512, 0, NULL);
 
     //failed to create the pipe (error 100)

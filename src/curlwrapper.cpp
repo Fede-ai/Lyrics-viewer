@@ -4,6 +4,10 @@ CurlWrapper::CurlWrapper()
 {
     if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
         std::cout << "failed curl global initialization\n";
+
+    char rawPath[256];
+    GetModuleFileNameA(NULL, rawPath, 256);
+    caInfo = std::string(rawPath).substr(0, std::string(rawPath).find_last_of('\\')) + "\\cacert.pem";
 }
 CurlWrapper::~CurlWrapper()
 {
@@ -33,7 +37,8 @@ Response CurlWrapper::sendRequest(const Request& req)
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
     }
 
-    curl_easy_setopt(curl, CURLOPT_CAINFO, ".\\cacert.pem");
+
+    curl_easy_setopt(curl, CURLOPT_CAINFO, caInfo.c_str());
     curl_easy_setopt(curl, CURLOPT_URL, req.url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
 

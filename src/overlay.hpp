@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <mutex>
 #include "button.hpp"
 #include "cefapp.hpp"
 
@@ -14,7 +15,7 @@ public:
 	}
 
 private:
-	bool handleEvent(sf::Event e);
+	bool handleEvent(std::optional<sf::Event> e);
 	void drawOverlay();
 
 	//blocking function that waits for auth
@@ -29,7 +30,7 @@ private:
 
 	CefRefPtr<SimpleApp> app_;
 	sf::RenderWindow w_;
-	sf::Mutex mutex_;
+	std::mutex mutex_;
 
 	std::string accessToken_ = "";
 	std::string refreshToken_ = "";
@@ -58,7 +59,6 @@ private:
 
 	sf::Font font_;
 	sf::Texture resizeTexture_;
-	sf::Sprite resizeSprite_;
 
 	Button closeBut_, lockBut_, volumeBut_;
 	sf::Texture lockCloseTexture_;

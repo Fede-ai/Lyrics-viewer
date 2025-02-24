@@ -8,57 +8,52 @@
 
 Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 	:
-	app_(inApp)
+	app_(inApp),
+    defaultCursor_(sf::Cursor::Type::Arrow),
+    resizeCursor_(sf::Cursor::Type::SizeTopRight)
 {
     char rawPath[256];
     GetModuleFileNameA(NULL, rawPath, 256);
     std::string path = std::string(rawPath).substr(0, std::string(rawPath).find_last_of('\\'));
 
-    float width = sf::VideoMode::getDesktopMode().width / 3.8f;
+    float width = sf::VideoMode::getDesktopMode().size.x / 3.8f;
 	wSize_ = sf::Vector2i(int(width), int(width * .6f));
     wSize_.x = std::max(wSize_.x, 350), wSize_.y = std::max(wSize_.y, 200);
 
-    titleBar_ = sf::FloatRect(11, 11, wSize_.x - float(10 + 10 + 24), 25);
-	background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
-    font_.loadFromFile(path + "/resources/AveriaSansLibre-Bold.ttf");
-
-    defaultCursor_.loadFromSystem(sf::Cursor::Arrow);
-    resizeCursor_.loadFromSystem(sf::Cursor::SizeTopRight);
-
-    resizeTexture_.loadFromFile(path + "/resources/resize.png");
-    resizeSprite_.setTexture(resizeTexture_);
-    resizeSprite_.setColor(shadowWhite_);
-    resizeSprite_.setPosition(0, wSize_.y - resizeSprite_.getLocalBounds().height);
+    titleBar_ = sf::FloatRect({ 11, 11 }, { wSize_.x - float(10 + 10 + 24), 25 });
+    background_ = sf::FloatRect({ 0, 0 }, sf::Vector2f(wSize_));
+    bool success = font_.openFromFile(path + "/resources/AveriaSansLibre-Bold.ttf");
+    success = resizeTexture_.loadFromFile(path + "/resources/resize.png");
 
 	closeBut_.loadTexture(path + "/resources/close.png");
     closeBut_.setColors(sf::Color::White, shadowWhite_, sf::Color(240, 30, 30));
-    closeBut_.sprite.setPosition(wSize_.x - 26.f, 5.f);
+    closeBut_.sprite->setPosition({ wSize_.x - 26.f, 5.f });
 
-    lockCloseTexture_.loadFromFile(path + "/resources/lock_close.png");
+    success = lockCloseTexture_.loadFromFile(path + "/resources/lock_close.png");
     lockBut_.loadTexture(path + "/resources/lock_open.png");
     lockBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
-    lockBut_.sprite.setPosition(wSize_.x - 25.f, 25.5f);
+    lockBut_.sprite->setPosition({ wSize_.x - 25.f, 25.5f });
 
     volumeBut_.loadTexture(path + "/resources/volume.png");
     volumeBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
-    volumeBut_.sprite.setPosition(wSize_.x - 26.f, 47.5f);
+    volumeBut_.sprite->setPosition({ wSize_.x - 26.f, 47.5f });
     
 	prevBut_.loadTexture(path + "/resources/prev.png");
     prevBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
-    prevBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 - 40 - 8,
-        titleBar_.top + titleBar_.height / 2.f - 8);
+    prevBut_.sprite->setPosition({ titleBar_.position.x + titleBar_.size.x - 15 - 40 - 8,
+        titleBar_.position.y + titleBar_.size.y / 2.f - 8 });
 
-    pauseTexture_.loadFromFile(path + "/resources/pause.png");
+    success = pauseTexture_.loadFromFile(path + "/resources/pause.png");
     playBut_.loadTexture(path + "/resources/play.png");
     playBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
-    playBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 - 20 - 8,
-        titleBar_.top + titleBar_.height / 2.f - 8);
+    playBut_.sprite->setPosition({ titleBar_.position.x + titleBar_.size.x - 15 - 20 - 8,
+        titleBar_.position.y + titleBar_.size.y / 2.f - 8 });
 
     nextBut_.loadTexture(path + "/resources/prev.png");
     nextBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
-    nextBut_.sprite.setScale(-1, 1);
-    nextBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 + 8,
-        titleBar_.top + titleBar_.height / 2.f - 8);
+    nextBut_.sprite->setScale({ -1, 1 });
+    nextBut_.sprite->setPosition({ titleBar_.position.x + titleBar_.size.x - 15 + 8,
+        titleBar_.position.y + titleBar_.size.y / 2.f - 8 });
 }
 
 void Overlay::run()
@@ -75,20 +70,20 @@ void Overlay::run()
 
 	//create the window
     sf::ContextSettings settings;
-    settings.antialiasingLevel = 8;
-	w_.create(sf::VideoMode(wSize_.x, wSize_.y), "Lyrics Viewer", sf::Style::None, settings);
+    settings.antiAliasingLevel = 8;
+    w_.create(sf::VideoMode(sf::Vector2u(wSize_)), "Lyrics Viewer", sf::Style::None, sf::State::Windowed, settings);
 	w_.setFramerateLimit(60);
 	w_.setKeyRepeatEnabled(false);
-    w_.setActive(false);
+    bool success = w_.setActive(false);
 
 	//set window style to borderless
     MARGINS margins;
     margins.cxLeftWidth = -1;
-    SetWindowLong(w_.getSystemHandle(), GWL_STYLE, WS_POPUP | WS_VISIBLE);
+    SetWindowLongA(w_.getNativeHandle(), GWL_STYLE, WS_POPUP | WS_VISIBLE);
 
 	//move window to the top left corner
-    DwmExtendFrameIntoClientArea(w_.getSystemHandle(), &margins);
-    SetWindowPos(w_.getSystemHandle(), HWND_TOPMOST, sf::VideoMode::getDesktopMode().width - 15
+    DwmExtendFrameIntoClientArea(w_.getNativeHandle(), &margins);
+    SetWindowPos(w_.getNativeHandle(), HWND_TOPMOST, sf::VideoMode::getDesktopMode().size.x - 15
         - wSize_.x, 75, 0, 0, SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_NOSIZE);
 
 	drawOverlay();
@@ -100,13 +95,11 @@ void Overlay::run()
     std::thread expandThread(&Overlay::expandWindow, this);
 
 	while (w_.isOpen()) {
-		sf::Event e;
-		if (w_.waitEvent(e)) {
-            if (handleEvent(e)) {
-				//std::cout << "event-issued redraw\n";
-                drawOverlay(); 
-            }
-		}
+        std::optional<sf::Event> e = w_.waitEvent();
+        if (handleEvent(e)) {
+            //std::cout << "event-issued redraw\n";
+            drawOverlay(); 
+        }
 	}
 
     isRunning_ = false;
@@ -115,14 +108,16 @@ void Overlay::run()
 	expandThread.join();
 }
 
-bool Overlay::handleEvent(sf::Event e)
+bool Overlay::handleEvent(std::optional<sf::Event> e)
 {
-    if (e.type == sf::Event::Closed) {
+    if (!e.has_value())
+        return false;
+    else if (e->is<sf::Event::Closed>()) {
         w_.close();
         return true;
     }
-    else if (e.type == sf::Event::MouseMoved) {
-        if (e.mouseMove.y > (wSize_.y - 30) + e.mouseMove.x && !isContracted_)
+    else if (const auto* move = e->getIf<sf::Event::MouseMoved>()) {
+        if (move->position.y > (wSize_.y - 30) + move->position.x && !isContracted_)
             w_.setMouseCursor(resizeCursor_);
         else if (resizeStartMousePos_ == sf::Vector2i(-1, -1))
             w_.setMouseCursor(defaultCursor_);
@@ -134,18 +129,18 @@ bool Overlay::handleEvent(sf::Event e)
             int y = std::max(startWinSize_.y - resizeStartMousePos_.y + sf::Mouse::getPosition().y, 200);
             
             wSize_ = sf::Vector2i(x, y);
-            titleBar_ = sf::FloatRect(11, 11, wSize_.x - float(10 + 10 + 24), 25);
-            background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
-            resizeSprite_.setPosition(0, wSize_.y - resizeSprite_.getLocalBounds().height);
-            closeBut_.sprite.setPosition(wSize_.x - 26.f, 5.f);
-            lockBut_.sprite.setPosition(wSize_.x - 25.f, 25.5f);
-            volumeBut_.sprite.setPosition(wSize_.x - 26.f, 47.5f);
-            prevBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 - 40 - 8,
-                titleBar_.top + titleBar_.height / 2.f - 8);
-            playBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 - 20 - 8,
-                titleBar_.top + titleBar_.height / 2.f - 8);
-            nextBut_.sprite.setPosition(titleBar_.left + titleBar_.width - 15 + 8,
-                titleBar_.top + titleBar_.height / 2.f - 8);
+            titleBar_ = sf::FloatRect({ 11, 11 }, { wSize_.x - float(10 + 10 + 24), 25 });
+            background_ = sf::FloatRect({ 0, 0 }, sf::Vector2f(wSize_));
+
+            closeBut_.sprite->setPosition({ wSize_.x - 26.f, 5.f });
+            lockBut_.sprite->setPosition({ wSize_.x - 25.f, 25.5f });
+            volumeBut_.sprite->setPosition({ wSize_.x - 26.f, 47.5f });
+            prevBut_.sprite->setPosition({ titleBar_.position.x + titleBar_.size.x - 15 - 40 - 8,
+                titleBar_.position.y + titleBar_.size.y / 2.f - 8 });
+            playBut_.sprite->setPosition({ titleBar_.position.x + titleBar_.size.x - 15 - 20 - 8,
+                titleBar_.position.y + titleBar_.size.y / 2.f - 8 });
+            nextBut_.sprite->setPosition({ titleBar_.position.x + titleBar_.size.x - 15 + 8,
+                titleBar_.position.y + titleBar_.size.y / 2.f - 8 });
 
             w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, wSize_.y / 2.f), sf::Vector2f(float(x), float(y))));
             w_.setPosition(sf::Vector2i(startWinPos_.x + startWinSize_.x - x, startWinPos_.y));
@@ -155,69 +150,69 @@ bool Overlay::handleEvent(sf::Event e)
 
 		bool needRedraw = false;
         //contract window
-        if (!isLocked_ && !isContracted_ && e.mouseMove.y > titleBar_.height + titleBar_.top * 2) {
+        if (!isLocked_ && !isContracted_ && move->position.y > titleBar_.size.y + titleBar_.position.y * 2) {
             isContracted_ = true;
-            background_ = sf::FloatRect(0, 0, float(wSize_.x), titleBar_.height + titleBar_.top * 2);
+            background_ = sf::FloatRect({ 0, 0 }, { float(wSize_.x), titleBar_.size.y + titleBar_.position.y * 2 });
             drawOverlay();
 
-            w_.setSize(sf::Vector2u(wSize_.x, int(titleBar_.height + titleBar_.top * 2)));
-            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, titleBar_.height / 2.f +
-                titleBar_.top), sf::Vector2f(w_.getSize())));
+            w_.setSize(sf::Vector2u(wSize_.x, int(titleBar_.size.y + titleBar_.position.y * 2)));
+            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, titleBar_.size.y / 2.f +
+                titleBar_.position.y), sf::Vector2f(w_.getSize())));
         }
         //expand window (only one specific case)
-		else if (isContracted_ && e.mouseMove.y < titleBar_.height + titleBar_.top * 2) {
+		else if (isContracted_ && move->position.y < titleBar_.size.y + titleBar_.position.y * 2) {
 			isContracted_ = false;
-			background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
+            background_ = sf::FloatRect({ 0, 0 }, sf::Vector2f(wSize_));
 			w_.setSize(sf::Vector2u(wSize_.x, wSize_.y));
 			w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, wSize_.y / 2.f), sf::Vector2f(w_.getSize())));
             needRedraw = true;
 		}
 
-        auto state = prevBut_.checkHover(e.mouseMove);
+        auto state = prevBut_.checkHover(move);
         needRedraw = needRedraw || state.second;
         if (state.first)
             return needRedraw;
 
-        state = playBut_.checkHover(e.mouseMove);
+        state = playBut_.checkHover(move);
         needRedraw = needRedraw || state.second;
         if (state.first)
             return needRedraw;
 
-        state = nextBut_.checkHover(e.mouseMove);
+        state = nextBut_.checkHover(move);
         needRedraw = needRedraw || state.second;
         if (state.first)
             return needRedraw;
 
-        state = closeBut_.checkHover(e.mouseMove);
+        state = closeBut_.checkHover(move);
         needRedraw = needRedraw || state.second;
         if (state.first)
             return needRedraw;
 
-        state = lockBut_.checkHover(e.mouseMove);
+        state = lockBut_.checkHover(move);
         needRedraw = needRedraw || state.second;
         if (state.first)
             return needRedraw;
 
-        state = volumeBut_.checkHover(e.mouseMove);
+        state = volumeBut_.checkHover(move);
         needRedraw = needRedraw || state.second;
         if (state.first)
             return needRedraw;
 
 		return needRedraw;
     }
-    else if (e.type == sf::Event::MouseEntered) {
+    else if (e->is<sf::Event::MouseEntered>()) {
 		//contract window
-        if (!isLocked_ && sf::Mouse::getPosition(w_).y > titleBar_.height + titleBar_.top * 2) {
+        if (!isLocked_ && sf::Mouse::getPosition(w_).y > titleBar_.size.y + titleBar_.position.y * 2) {
             isContracted_ = true;
-            background_ = sf::FloatRect(0, 0, float(wSize_.x), titleBar_.height + titleBar_.top * 2);
+            background_ = sf::FloatRect({ 0, 0 }, { float(wSize_.x), titleBar_.size.y + titleBar_.position.y * 2 });
             drawOverlay();
 
-            w_.setSize(sf::Vector2u(wSize_.x, int(titleBar_.height + titleBar_.top * 2)));
-            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, titleBar_.height / 2.f +
-                titleBar_.top), sf::Vector2f(w_.getSize())));
+            w_.setSize(sf::Vector2u(wSize_.x, int(titleBar_.size.y + titleBar_.position.y * 2)));
+            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, titleBar_.size.y / 2.f +
+                titleBar_.position.y), sf::Vector2f(w_.getSize())));
         }
     }
-    else if (e.type == sf::Event::MouseLeft) {
+    else if (e->is<sf::Event::MouseLeft>()) {
         bool needRedraw = false;
 
         needRedraw = needRedraw || prevBut_.mouseLeft();
@@ -229,39 +224,45 @@ bool Overlay::handleEvent(sf::Event e)
 
         return needRedraw;
     }
-    else if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left) {
-        if (prevBut_.mouseDown(e.mouseButton))
+    else if (const auto* press = e->getIf<sf::Event::MouseButtonPressed>()) {
+        if (press->button != sf::Mouse::Button::Left)
+            return false;
+
+        if (prevBut_.mouseDown(press))
             return true;
-        if (playBut_.mouseDown(e.mouseButton))
+        if (playBut_.mouseDown(press))
             return true;
-        if (nextBut_.mouseDown(e.mouseButton))
+        if (nextBut_.mouseDown(press))
             return true;
-        if (closeBut_.mouseDown(e.mouseButton))
+        if (closeBut_.mouseDown(press))
             return true;		
-        if (lockBut_.mouseDown(e.mouseButton))
+        if (lockBut_.mouseDown(press))
             return true;		
-        if (volumeBut_.mouseDown(e.mouseButton))
+        if (volumeBut_.mouseDown(press))
             return true;
 
         //start moving
-        if (titleBar_.contains(float(e.mouseButton.x), float(e.mouseButton.y))) {
+        if (titleBar_.contains(sf::Vector2f(press->position))) {
             moveStartMousePos_ = sf::Mouse::getPosition();
             startWinPos_ = w_.getPosition();
             return false;
         }
         //start resizing
-        if (e.mouseButton.y > (wSize_.y - 30) + e.mouseButton.x && !isContracted_) {
+        if (press->position.y > (wSize_.y - 30) + press->position.x && !isContracted_) {
             resizeStartMousePos_ = sf::Mouse::getPosition();
             startWinSize_ = sf::Vector2i(w_.getSize());
             startWinPos_ = w_.getPosition();
             return false;
         }
     }
-    else if (e.type == sf::Event::MouseButtonReleased && e.mouseButton.button == sf::Mouse::Left) {
+    else if (const auto* release = e->getIf<sf::Event::MouseButtonReleased>()) {
+        if (release->button != sf::Mouse::Button::Left)
+            return false;
+        
         moveStartMousePos_ = sf::Vector2i(-1, -1);
         resizeStartMousePos_ = sf::Vector2i(-1, -1);
 
-        auto state = prevBut_.mouseUp(e.mouseButton);
+        auto state = prevBut_.mouseUp(release);
         if (state.first) {
             if (state.second) {
                 Request req(Request::Methods::POST);
@@ -276,7 +277,7 @@ bool Overlay::handleEvent(sf::Event e)
             return state.second;
         }
 
-        state = playBut_.mouseUp(e.mouseButton);
+        state = playBut_.mouseUp(release);
         if (state.first) {
             if (state.second) {
                 Request req(Request::Methods::PUT);
@@ -295,7 +296,7 @@ bool Overlay::handleEvent(sf::Event e)
             return state.second;
         }
 
-        state = nextBut_.mouseUp(e.mouseButton);
+        state = nextBut_.mouseUp(release);
         if (state.first) {
             if (state.second) {
                 Request req(Request::Methods::POST);
@@ -310,7 +311,7 @@ bool Overlay::handleEvent(sf::Event e)
             return state.second;
         }
 
-        state = closeBut_.mouseUp(e.mouseButton);
+        state = closeBut_.mouseUp(release);
         if (state.first) {
             if (state.second)
                 w_.close();
@@ -318,7 +319,7 @@ bool Overlay::handleEvent(sf::Event e)
             return state.second;
         }
 
-        state = lockBut_.mouseUp(e.mouseButton);
+        state = lockBut_.mouseUp(release);
         if (state.first) {
             if (state.second)
 				isLocked_ = !isLocked_;
@@ -326,7 +327,7 @@ bool Overlay::handleEvent(sf::Event e)
             return state.second;
         }
 
-        state = volumeBut_.mouseUp(e.mouseButton);
+        state = volumeBut_.mouseUp(release);
         if (state.first) {
             if (state.second)
                 isVolume_ = !isVolume_;
@@ -340,14 +341,14 @@ bool Overlay::handleEvent(sf::Event e)
 void Overlay::drawOverlay()
 {
     //std::cout << "redrawing overlay\n";
-    const float vc = titleBar_.top * 2 + titleBar_.height - 10
-        + (w_.getSize().y - titleBar_.top * 2 - titleBar_.height) / 2.f;
+    const float vc = titleBar_.position.y * 2 + titleBar_.size.y - 10
+        + (w_.getSize().y - titleBar_.position.y * 2 - titleBar_.size.y) / 2.f;
 
     const auto buildRect = [](sf::FloatRect fr, float r, int n, sf::Color c) {
-		auto p = fr.getPosition();
-		auto s = fr.getSize();
+		auto p = fr.position;
+		auto s = fr.size;
 
-        sf::VertexArray rect(sf::TriangleFan, 1);
+        sf::VertexArray rect(sf::PrimitiveType::TriangleFan, 1);
         rect[0].position = { p.x + s.x / 2.f, p.y + s.y / 2.f };
         rect[0].color = c;
 
@@ -372,7 +373,7 @@ void Overlay::drawOverlay()
     };
 
     mutex_.lock();
-    w_.setActive(true);
+    bool success = w_.setActive(true);
     w_.clear(sf::Color::Transparent);
     w_.draw(buildRect(background_, 18, 7, bgGray_));
 
@@ -383,12 +384,12 @@ void Overlay::drawOverlay()
         //draw previous line
         if (currentLine_ - 1 >= 0) {
             bool splitLine = false;
-            sf::Text prev1(currentLyrics_[currentLine_ - 1].first, font_, 15);
+            sf::Text prev1(font_, currentLyrics_[currentLine_ - 1].first, 15);
             prev1.setFillColor(secLineCol_);
-            sf::Text prev2("", font_, 15);
+            sf::Text prev2(font_, "", 15);
             prev2.setFillColor(secLineCol_);
             //split the line into two if needed
-            if (prev1.getGlobalBounds().width > titleBar_.width * 15 / 20.f) {
+            if (prev1.getGlobalBounds().size.x > titleBar_.size.x * 15 / 20.f) {
                 std::wstring l = currentLyrics_[currentLine_ - 1].first;
                 const size_t mid = l.size() / 2;;
                 for (size_t d = 0; d < mid; d++) {
@@ -407,28 +408,28 @@ void Overlay::drawOverlay()
                 }
             }
 
-            prev1.setOrigin(prev1.getGlobalBounds().width / 2.f, prev1.getGlobalBounds().height / 2.f);
-            prev2.setOrigin(prev2.getGlobalBounds().width / 2.f, prev2.getGlobalBounds().height / 2.f);
+            prev1.setOrigin({ prev1.getGlobalBounds().size.x / 2.f, prev1.getGlobalBounds().size.y / 2.f });
+            prev2.setOrigin({ prev2.getGlobalBounds().size.x / 2.f, prev2.getGlobalBounds().size.y / 2.f });
 
             //draw second line if needed
             if (splitLine) {
-                prev1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - lineDist - 9);
-                prev2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - lineDist + 9);
+                prev1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 - lineDist - 9 });
+                prev2.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 - lineDist + 9 });
                 w_.draw(prev2);
             }
             else
-                prev1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - lineDist);
+                prev1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 - lineDist });
             w_.draw(prev1);
         }
         //draw next line
         if (currentLine_ + 1 < int(currentLyrics_.size())) {
             bool splitLine = false;
-            sf::Text next1(currentLyrics_[currentLine_ + 1].first, font_, 15);
+            sf::Text next1(font_, currentLyrics_[currentLine_ + 1].first, 15);
             next1.setFillColor(secLineCol_);
-            sf::Text next2("", font_, 15);
+            sf::Text next2(font_, "", 15);
             next2.setFillColor(secLineCol_);
             //split the line into two if needed
-            if (next1.getGlobalBounds().width > titleBar_.width * 15 / 20.f) {
+            if (next1.getGlobalBounds().size.x > titleBar_.size.x * 15 / 20.f) {
                 std::wstring l = currentLyrics_[currentLine_ + 1].first;
                 const size_t mid = l.size() / 2;;
                 for (size_t d = 0; d < mid; d++) {
@@ -447,27 +448,27 @@ void Overlay::drawOverlay()
                 }
             }
 
-            next1.setOrigin(next1.getGlobalBounds().width / 2.f, next1.getGlobalBounds().height / 2.f);
-            next2.setOrigin(next2.getGlobalBounds().width / 2.f, next2.getGlobalBounds().height / 2.f);
+            next1.setOrigin({ next1.getGlobalBounds().size.x / 2.f, next1.getGlobalBounds().size.y / 2.f });
+            next2.setOrigin({ next2.getGlobalBounds().size.x / 2.f, next2.getGlobalBounds().size.y / 2.f });
 
             //draw second line if needed
             if (splitLine) {
-                next1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 2 + lineDist - 9);
-                next2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 2 + lineDist + 9);
+                next1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 + lineDist - 9 });
+                next2.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 + lineDist + 9 });
                 w_.draw(next2);
             }
             else
-                next1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 2 + lineDist);
+                next1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 + lineDist });
             w_.draw(next1);
         }
 
         bool splitLine = false;
-        sf::Text line1(currentLyrics_[currentLine_].first, font_, 20);
+        sf::Text line1(font_, currentLyrics_[currentLine_].first, 20);
         line1.setFillColor(mainLineCol_);
-        sf::Text line2("", font_, 20);
+        sf::Text line2(font_, "", 20);
         line2.setFillColor(mainLineCol_);
         //split the line into two if needed
-        if (line1.getGlobalBounds().width > titleBar_.width) {
+        if (line1.getGlobalBounds().size.x > titleBar_.size.x) {
             std::wstring l = currentLyrics_[currentLine_].first;
             const size_t mid = l.size() / 2;;
             for (size_t d = 0; d < mid; d++) {
@@ -486,17 +487,17 @@ void Overlay::drawOverlay()
             }
         }
 
-        line1.setOrigin(line1.getGlobalBounds().width / 2.f, line1.getGlobalBounds().height / 2.f);
-        line2.setOrigin(line2.getGlobalBounds().width / 2.f, line2.getGlobalBounds().height / 2.f);
+        line1.setOrigin({ line1.getGlobalBounds().size.x / 2.f, line1.getGlobalBounds().size.y / 2.f });
+        line2.setOrigin({ line2.getGlobalBounds().size.x / 2.f, line2.getGlobalBounds().size.y / 2.f });
 
         //draw second line if needed
         if (splitLine) {
-            line1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc - 11);
-            line2.setPosition(titleBar_.left + titleBar_.width / 2.f, vc + 11);
+            line1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc - 11 });
+            line2.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 11 });
             w_.draw(line2);
         }
         else
-            line1.setPosition(titleBar_.left + titleBar_.width / 2.f, vc);
+            line1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc });
         w_.draw(line1);
     }
 
@@ -512,10 +513,10 @@ void Overlay::drawOverlay()
     
         titleStr += currentArtists_[i];
     }
-    sf::Text title(titleStr, font_, 14);
+    sf::Text title(font_, titleStr, 14);
 	//truncate the title if it's too long
     bool isTitleShortened = false;
-    while (title.getGlobalBounds().width > titleBar_.width - 90) {
+    while (title.getGlobalBounds().size.x > titleBar_.size.x - 90) {
         titleStr.resize(titleStr.size() - 1);
         if (titleStr[titleStr.size() - 1] == ' ')
             titleStr.resize(titleStr.size() - 1);
@@ -525,37 +526,41 @@ void Overlay::drawOverlay()
     }
     if (isTitleShortened)
         title.setString(titleStr + L"...");
-    title.setPosition(titleBar_.left + 8, titleBar_.top + 3);
+    title.setPosition({ titleBar_.position.x + 8, titleBar_.position.y + 3 });
     w_.draw(title);
 
 	//draw the control buttons
-    w_.draw(prevBut_.sprite);
-    playBut_.sprite.setTexture(isPlaying_ ? pauseTexture_ : playBut_.texture);
-    w_.draw(playBut_.sprite);
-    w_.draw(nextBut_.sprite);
+    w_.draw(*prevBut_.sprite);
+    playBut_.sprite->setTexture(isPlaying_ ? pauseTexture_ : playBut_.texture);
+    w_.draw(*playBut_.sprite);
+    w_.draw(*nextBut_.sprite);
 
-	w_.draw(closeBut_.sprite);
-    lockBut_.sprite.setTexture(isLocked_ ? lockCloseTexture_ : lockBut_.texture);
-    w_.draw(lockBut_.sprite);
+	w_.draw(*closeBut_.sprite);
+    lockBut_.sprite->setTexture(isLocked_ ? lockCloseTexture_ : lockBut_.texture);
+    w_.draw(*lockBut_.sprite);
 
     //draw the progress/volume bar
     if (!isContracted_) {
-        w_.draw(volumeBut_.sprite);
-        w_.draw(resizeSprite_);
+        w_.draw(*volumeBut_.sprite);
 
-        sf::FloatRect barBg(wSize_.x - 21.f, 71, 6, wSize_.y - 92.f);
+        sf::Sprite resizeSprite(resizeTexture_);
+        resizeSprite.setColor(shadowWhite_);
+        resizeSprite.setPosition({ 0, wSize_.y - resizeSprite.getLocalBounds().size.y });
+        w_.draw(resizeSprite);
+
+        sf::FloatRect barBg({ wSize_.x - 21.f, 71 }, { 6, wSize_.y - 92.f });
         w_.draw(buildRect(barBg, 3, 4, tbGray_));
 
         float barPercent = (duration_ == 0) ? 0 : progress_ / float(duration_);
         if (isVolume_)
 			barPercent = volumePercent_ / 100.f;
 
-        sf::FloatRect bar(wSize_.x - 21.f, 71, 6, 6 + (wSize_.y - 98.f) * barPercent);
+        sf::FloatRect bar({ wSize_.x - 21.f, 71 }, { 6, 6 + (wSize_.y - 98.f) * barPercent });
         w_.draw(buildRect(bar, 3, 4, sf::Color::White));
     }
 
     w_.display();
-    w_.setActive(false);
+    success = w_.setActive(false);
     mutex_.unlock();
 }
 
@@ -866,15 +871,14 @@ void Overlay::expandWindow()
 			continue;
 
         sf::IntRect rect;
-		rect.width = wSize_.x;
-        rect.height = wSize_.y;
+		rect.size = wSize_;
 
 		if (!rect.contains(sf::Mouse::getPosition(w_))) {
 			w_.setSize(sf::Vector2u(wSize_.x, wSize_.y));
 			w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, wSize_.y / 2.f), sf::Vector2f(w_.getSize())));
 
 			isContracted_ = false;
-            background_ = sf::FloatRect(0, 0, float(wSize_.x), float(wSize_.y));
+            background_ = sf::FloatRect({ 0, 0 }, sf::Vector2f(wSize_));
 			drawOverlay();
 		}
     }

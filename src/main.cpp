@@ -12,7 +12,7 @@ int main()
     settings.log_severity = LOGSEVERITY_DEBUG;
     settings.no_sandbox = true;
     settings.windowless_rendering_enabled = true;
-    CefString(&settings.root_cache_path).FromASCII((dir + std::string("/cache")).c_str());
+    //CefString(&settings.root_cache_path).FromASCII((dir + std::string("/cache")).c_str());
     //CefString(&settings.log_file).FromASCII((dir + std::string("/log.log")).c_str());
 
     CefRefPtr<SimpleApp> app = new SimpleApp();

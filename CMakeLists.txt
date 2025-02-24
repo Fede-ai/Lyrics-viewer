@@ -18,13 +18,15 @@ set(SOURCE
 	
 add_executable(Lyrics-viewer ${SOURCE})
 set_property(GLOBAL PROPERTY VS_STARTUP_PROJECT Lyrics-viewer)
+target_sources(Lyrics-viewer PRIVATE ERRORS.md LICENSE.md README.md)
+source_group("Documentation" FILES ERRORS.md LICENSE.md README.md)
 if (MSVC)
-  add_compile_definitions($<$<CONFIG:Debug>:_ITERATOR_DEBUG_LEVEL=0>)
+	add_compile_definitions($<$<CONFIG:Debug>:_ITERATOR_DEBUG_LEVEL=0>)
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 endif()
 
-set(PATH_SFML "C:/SFML-2.6.1" CACHE STRING "Path to the SFML library")
+set(PATH_SFML "C:/SFML-3.0.0" CACHE STRING "Path to the SFML library")
 set(PATH_LIBCURL "C:/curl-8.12.1" CACHE STRING "Path to the libcurl library")
 set(PATH_CEF "C:/cef_binary_131.2.7" CACHE STRING "Path to the cef library")
 
@@ -47,54 +49,40 @@ target_link_libraries(Lyrics-viewer PRIVATE
 	libcef_dll_wrapper.lib
 )
 
+# rename 'libcurl.dll.a' to 'libcurl.lib'
+add_custom_command(TARGET Lyrics-viewer PRE_LINK
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PATH_LIBCURL}/lib/libcurl.dll.a ${PATH_LIBCURL}/lib/libcurl.lib
+    COMMENT "Renaming 'libcurl.dll.a' to 'libcurl.lib'..."
+)
+
+# copy necessary dll files and resource folders
 add_custom_command(TARGET Lyrics-viewer POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different        	
-	$<$<CONFIG:Release>:${PATH_SFML}/bin/sfml-system-2.dll>
-	$<$<CONFIG:Debug>:${PATH_SFML}/bin/sfml-system-d-2.dll>
-	$<$<CONFIG:Release>:${PATH_SFML}/bin/sfml-window-2.dll>
-	$<$<CONFIG:Debug>:${PATH_SFML}/bin/sfml-window-d-2.dll>
-	$<$<CONFIG:Release>:${PATH_SFML}/bin/sfml-graphics-2.dll>
-	$<$<CONFIG:Debug>:${PATH_SFML}/bin/sfml-graphics-d-2.dll>
+	$<$<CONFIG:Release>:${PATH_SFML}/bin/sfml-system-3.dll>
+	$<$<CONFIG:Debug>:${PATH_SFML}/bin/sfml-system-d-3.dll>
+	$<$<CONFIG:Release>:${PATH_SFML}/bin/sfml-window-3.dll>
+	$<$<CONFIG:Debug>:${PATH_SFML}/bin/sfml-window-d-3.dll>
+	$<$<CONFIG:Release>:${PATH_SFML}/bin/sfml-graphics-3.dll>
+	$<$<CONFIG:Debug>:${PATH_SFML}/bin/sfml-graphics-d-3.dll>
 	"${PATH_LIBCURL}/bin/libcurl-x64.dll"
-	$<$<CONFIG:Release>:${PATH_CEF}/Release/cef_sandbox.lib>
-	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/cef_sandbox.lib>
 	$<$<CONFIG:Release>:${PATH_CEF}/Release/chrome_elf.dll>
 	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/chrome_elf.dll>
-	$<$<CONFIG:Release>:${PATH_CEF}/Release/d3dcompiler_47.dll>
-	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/d3dcompiler_47.dll>
-	$<$<CONFIG:Release>:${PATH_CEF}/Release/dxcompiler.dll>
-	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/dxcompiler.dll>
-	$<$<CONFIG:Release>:${PATH_CEF}/Release/dxil.dll>
-	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/dxil.dll>
 	$<$<CONFIG:Release>:${PATH_CEF}/Release/libcef.dll>
 	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/libcef.dll>
-	$<$<CONFIG:Release>:${PATH_CEF}/Release/libcef_dll_wrapper.lib>
-	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/libcef_dll_wrapper.lib>
 	$<$<CONFIG:Release>:${PATH_CEF}/Release/libEGL.dll>
 	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/libEGL.dll>
 	$<$<CONFIG:Release>:${PATH_CEF}/Release/libEGL.dll>
 	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/libEGL.dll>
 	$<$<CONFIG:Release>:${PATH_CEF}/Release/libGLESv2.dll>
 	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/libGLESv2.dll>
-	$<$<CONFIG:Release>:${PATH_CEF}/Release/snapshot_blob.bin>
-	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/snapshot_blob.bin>
 	$<$<CONFIG:Release>:${PATH_CEF}/Release/v8_context_snapshot.bin>
 	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/v8_context_snapshot.bin>
-	$<$<CONFIG:Release>:${PATH_CEF}/Release/vk_swiftshader.dll>
-	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/vk_swiftshader.dll>
-	$<$<CONFIG:Release>:${PATH_CEF}/Release/vk_swiftshader_icd.json>
-	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/vk_swiftshader_icd.json>
-	$<$<CONFIG:Release>:${PATH_CEF}/Release/vulkan-1.dll>
-	$<$<CONFIG:Debug>:${PATH_CEF}/Debug/vulkan-1.dll>
 	"${PATH_CEF}/Resources/chrome_100_percent.pak"
 	"${PATH_CEF}/Resources/chrome_200_percent.pak"
 	"${PATH_CEF}/Resources/icudtl.dat"
 	"${PATH_CEF}/Resources/resources.pak"
 	"${CMAKE_SOURCE_DIR}/dep/cacert.pem"
-	$<TARGET_FILE_DIR:Lyrics-viewer>
-)
-
-add_custom_command(TARGET Lyrics-viewer POST_BUILD
+	$<TARGET_FILE_DIR:Lyrics-viewer>	
 	COMMAND ${CMAKE_COMMAND} -E copy_directory
 	"${CMAKE_SOURCE_DIR}/resources"
 	$<TARGET_FILE_DIR:Lyrics-viewer>/resources
@@ -103,10 +91,12 @@ add_custom_command(TARGET Lyrics-viewer POST_BUILD
 	$<TARGET_FILE_DIR:Lyrics-viewer>/locales
 )
 
+# add manifest
 add_custom_command(TARGET Lyrics-viewer POST_BUILD
 	COMMAND mt.exe -nologo -manifest 
-	"${CMAKE_SOURCE_DIR}/dep/Lyrics-viewer.exe.manifest" 
-	"${CMAKE_SOURCE_DIR}/dep/compatibility.manifest"
+	"${CMAKE_SOURCE_DIR}/dep/Lyrics-viewer.exe.manifest"
+	"${CMAKE_SOURCE_DIR}/dep/compatibility.manifest" 
 	$<$<CONFIG:Release>:-outputresource:"${CMAKE_BINARY_DIR}/Release/Lyrics-viewer.exe">
 	$<$<CONFIG:Debug>:-outputresource:"${CMAKE_BINARY_DIR}/Debug/Lyrics-viewer.exe">
+    COMMENT "Adding manifest..."
 )

@@ -116,6 +116,35 @@ bool Overlay::handleEvent(std::optional<sf::Event> e)
         w_.close();
         return true;
     }
+    else if (e->is<sf::Event::MouseEntered>()) {
+        if (!sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+            moveStartMousePos_ = sf::Vector2i(-1, -1);
+            resizeStartMousePos_ = sf::Vector2i(-1, -1);
+        }
+
+        //contract window
+        if (!isLocked_ && sf::Mouse::getPosition(w_).y > titleBar_.size.y + titleBar_.position.y * 2) {
+            isContracted_ = true;
+            background_ = sf::FloatRect({ 0, 0 }, { float(wSize_.x), titleBar_.size.y + titleBar_.position.y * 2 });
+            drawOverlay();
+
+            w_.setSize(sf::Vector2u(wSize_.x, int(titleBar_.size.y + titleBar_.position.y * 2)));
+            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, titleBar_.size.y / 2.f +
+                titleBar_.position.y), sf::Vector2f(w_.getSize())));
+        }
+    }
+    else if (e->is<sf::Event::MouseLeft>()) {
+        bool needRedraw = false;
+
+        needRedraw = needRedraw || prevBut_.mouseLeft();
+        needRedraw = needRedraw || playBut_.mouseLeft();
+        needRedraw = needRedraw || nextBut_.mouseLeft();
+        needRedraw = needRedraw || closeBut_.mouseLeft();
+        needRedraw = needRedraw || lockBut_.mouseLeft();
+        needRedraw = needRedraw || volumeBut_.mouseLeft();
+
+        return needRedraw;
+    }
     else if (const auto* move = e->getIf<sf::Event::MouseMoved>()) {
         if (move->position.y > (wSize_.y - 30) + move->position.x && !isContracted_)
             w_.setMouseCursor(resizeCursor_);
@@ -199,30 +228,6 @@ bool Overlay::handleEvent(std::optional<sf::Event> e)
             return needRedraw;
 
 		return needRedraw;
-    }
-    else if (e->is<sf::Event::MouseEntered>()) {
-		//contract window
-        if (!isLocked_ && sf::Mouse::getPosition(w_).y > titleBar_.size.y + titleBar_.position.y * 2) {
-            isContracted_ = true;
-            background_ = sf::FloatRect({ 0, 0 }, { float(wSize_.x), titleBar_.size.y + titleBar_.position.y * 2 });
-            drawOverlay();
-
-            w_.setSize(sf::Vector2u(wSize_.x, int(titleBar_.size.y + titleBar_.position.y * 2)));
-            w_.setView(sf::View(sf::Vector2f(wSize_.x / 2.f, titleBar_.size.y / 2.f +
-                titleBar_.position.y), sf::Vector2f(w_.getSize())));
-        }
-    }
-    else if (e->is<sf::Event::MouseLeft>()) {
-        bool needRedraw = false;
-
-        needRedraw = needRedraw || prevBut_.mouseLeft();
-        needRedraw = needRedraw || playBut_.mouseLeft();
-        needRedraw = needRedraw || nextBut_.mouseLeft();
-        needRedraw = needRedraw || closeBut_.mouseLeft();
-        needRedraw = needRedraw || lockBut_.mouseLeft();
-        needRedraw = needRedraw || volumeBut_.mouseLeft();
-
-        return needRedraw;
     }
     else if (const auto* press = e->getIf<sf::Event::MouseButtonPressed>()) {
         if (press->button != sf::Mouse::Button::Left)

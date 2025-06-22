@@ -16,10 +16,11 @@ set(SOURCE
 	src/overlay.cpp src/overlay.hpp
 )
 	
-add_executable(Lyrics-viewer ${SOURCE})
+add_executable(Lyrics-viewer WIN32 ${SOURCE})
 set_property(GLOBAL PROPERTY VS_STARTUP_PROJECT Lyrics-viewer)
-target_sources(Lyrics-viewer PRIVATE ERRORS.md LICENSE.md README.md)
-source_group("Documentation" FILES ERRORS.md LICENSE.md README.md)
+
+target_sources(Lyrics-viewer PRIVATE ERRORS.md LICENSE.md README.md TO_DO.md)
+source_group("Documentation" FILES ERRORS.md LICENSE.md README.md TO_DO.md)
 if (MSVC)
 	add_compile_definitions($<$<CONFIG:Debug>:_ITERATOR_DEBUG_LEVEL=0>)
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
@@ -42,8 +43,8 @@ target_link_directories(Lyrics-viewer PRIVATE
 )
 
 target_link_libraries(Lyrics-viewer PRIVATE
-	$<$<CONFIG:Release>:sfml-system.lib sfml-window.lib sfml-graphics.lib>
-	$<$<CONFIG:Debug>:sfml-system-d.lib sfml-window-d.lib sfml-graphics-d.lib>
+	$<$<CONFIG:Release>:sfml-system.lib sfml-window.lib sfml-graphics.lib sfml-main-s.lib>
+	$<$<CONFIG:Debug>:sfml-system-d.lib sfml-window-d.lib sfml-graphics-d.lib sfml-main-s-d.lib>
 	libcurl.lib
 	libcef.lib
 	libcef_dll_wrapper.lib

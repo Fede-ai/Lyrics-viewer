@@ -14,9 +14,6 @@ private:
 	bool handleEvent(std::optional<sf::Event> e);
 	void drawOverlay();
 
-	//blocking function that waits for auth
-	bool getFirstToken();
-
 	//on its own thread
 	void handleSongChange();
 	//on its own thread

@@ -562,50 +562,6 @@ void Overlay::drawOverlay()
     mutex_.unlock();
 }
 
-bool Overlay::getFirstToken()
-{
-    //create read-only named pipe
-    HANDLE hPipe = CreateNamedPipeW(TEXT(L"\\\\.\\pipe\\firstToken"), PIPE_ACCESS_INBOUND,
-        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 0, 512, 0, NULL);
-
-    //failed to create the pipe (error 100)
-    if (hPipe == INVALID_HANDLE_VALUE) {
-        std::cerr << "error 100: " << GetLastError() << "\n";
-        std::exit(100);
-    }
-
-    std::string info = "";
-    //wait for a client to connect
-    if (ConnectNamedPipe(hPipe, NULL)) {
-        char buffer[512] = {};
-        DWORD bytesRead;
-        if (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &bytesRead, NULL)) {
-            buffer[bytesRead] = '\0'; //null terminate the string
-            info = buffer;
-        }
-        //failed to read the message (error 103)
-        else {
-            std::cerr << "error 103: " << GetLastError() << "\n";
-            std::exit(103);
-        }
-    }
-
-    DisconnectNamedPipe(hPipe);
-    CloseHandle(hPipe);
-    waitingAuth_ = false;
-
-    //failed to authenticate spotify (error 200)
-    if (info[0] == 'f') {
-        std::cerr << "error 200: " << info.substr(1, info.size()) << "\n";
-        return false;
-    }
-
-    size_t sep = info.find_first_of('+');
-    accessToken_ = info.substr(1, sep - 1);
-    refreshToken_ = info.substr(sep + 1, info.size());
-    return true;
-}
-
 void Overlay::handleSongChange()
 {   
     //replace ' ' with '+'

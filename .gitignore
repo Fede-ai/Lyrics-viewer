@@ -1,4 +1,4 @@
 # ignore the current build
 build/
 dist/
-main.spec
+Lyrics-viewer.spec

@@ -2,17 +2,13 @@
 #include <SFML/Graphics.hpp>
 #include <mutex>
 #include "button.hpp"
-#include "cefapp.hpp"
 
 typedef std::pair<std::wstring, int> Line;
 
 class Overlay {
 public:
-	Overlay(CefRefPtr<SimpleApp> inApp);
+	Overlay(std::string at, std::string rt);
 	void run();
-	bool isWaitingAuth() const {
-		return waitingAuth_;
-	}
 
 private:
 	bool handleEvent(std::optional<sf::Event> e);
@@ -28,7 +24,6 @@ private:
 	//on its own thread
 	void expandWindow();
 
-	CefRefPtr<SimpleApp> app_;
 	sf::RenderWindow w_;
 	std::mutex mutex_;
 

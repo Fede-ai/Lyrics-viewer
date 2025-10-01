@@ -1,2 +1,4 @@
 # ignore the current build
 build/
+dist/
+main.spec

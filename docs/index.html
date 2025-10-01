@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Redirecting You...</title>
+	<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+	<div class="container">
+		<div class="message">You are about to <br> get redirected</div>
+		<div class="loader"></div>
+	</div>
+	<script>
+		const urlParams = new URLSearchParams(window.location.search);
+		let code = urlParams.get('code')
+
+		window.addEventListener('pywebviewready', function() {
+			window.pywebview.api.log(code);
+		})
+	</script>
+</body>
+</html>

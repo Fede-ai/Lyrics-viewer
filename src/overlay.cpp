@@ -6,11 +6,12 @@
 
 #pragma comment (lib, "dwmapi.lib")
 
-Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
+Overlay::Overlay(std::string at, std::string rt)
 	:
-	app_(inApp),
     defaultCursor_(sf::Cursor::Type::Arrow),
-    resizeCursor_(sf::Cursor::Type::SizeTopRight)
+    resizeCursor_(sf::Cursor::Type::SizeTopRight),
+	accessToken_(at),
+	refreshToken_(rt)
 {
     char rawPath[256];
     GetModuleFileNameA(NULL, rawPath, 256);
@@ -58,15 +59,7 @@ Overlay::Overlay(CefRefPtr<SimpleApp> inApp)
 
 void Overlay::run()
 {
-    //if auth failed, close window without launching player
-    if (!getFirstToken()) {
-        app_->closeAuthWindows();
-        return;
-    }
-
-    //close auth and shutdown cef
     sf::sleep(sf::seconds(0.2f));
-    app_->closeAuthWindows();
 
 	//create the window
     sf::ContextSettings settings;

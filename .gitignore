@@ -1,4 +1,3 @@
 # ignore the current build
 build/
-dist/
 Lyrics-viewer.spec

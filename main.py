@@ -27,6 +27,14 @@ code_verifier = generate_code_verifier()
 access_token = ""
 refresh_token = ""
 window: webview.Window | None = None
+exe_dir = ""
+
+#running as exe (release mode)
+if getattr(sys, 'frozen', False):
+	exe_dir = os.path.dirname(sys.executable) + "\\.."
+#running as script (debug mode)
+else:
+	exe_dir = os.path.dirname(os.path.abspath(__file__)) + "\\build\\Debug"
 
 # === Build auth URL ===
 auth_url = (
@@ -84,28 +92,60 @@ def perform_auth() -> None:
 	window = webview.create_window("Spotify Login", auth_url, x=x, y=y, width=w, height=h, on_top=True, js_api=Api())
 	
 	assert(window != None)
-	webview.start(debug=False)
+	if getattr(sys, 'frozen', False):
+		webview.start(debug=False)
+	else:
+		webview.start(debug=True)
 
 def run_overlay() -> None:
-		#running as exe
+	exe_path = exe_dir + "\\Lyrics-viewer.exe"
+	print(f"Starting overlay at path \"{exe_path}\"...")
+
 	if getattr(sys, 'frozen', False):
-		exe_dir = os.path.dirname(sys.executable) + "\\..\\.."
-	#running as script
+		subprocess.Popen(
+			exe_path + " " + access_token + " " + refresh_token, 
+			creationflags=subprocess.CREATE_NO_WINDOW
+		)
 	else:
-		exe_dir = os.path.dirname(os.path.abspath(__file__))
+		subprocess.run(
+			exe_path + " " + access_token + " " + refresh_token
+		)
 
-	exe_dir = exe_dir + "\\build\\Release\\Lyrics-viewer.exe"
-	print(f"Starting overlay at path \"{exe_dir}\"...")
-
-	#Popen (async) vs run (sync)
-	subprocess.Popen(
-		exe_dir + " " + access_token + " " + refresh_token, 
-		creationflags=subprocess.CREATE_NO_WINDOW
+#try fetching access token using refresh token or perform auth if necessary
+def get_access_token() -> None:
+	global access_token, refresh_token
+	token_url = "https://accounts.spotify.com/api/token"
+	response = requests.post(
+		token_url,
+		data={
+			"client_id": CLIENT_ID,
+			"grant_type": "refresh_token",
+			"refresh_token": refresh_token
+		}
 	)
 
-#TODO: try fetching tokens from cache
-if access_token == "" or refresh_token == "":
+	if response.status_code != 200:
+		print(response.text)
+		perform_auth()
+	else:
+		tokens = response.json()
+		access_token = tokens["access_token"]
+		refresh_token = tokens["refresh_token"]
+
+#open the file in read mode or create it if it doesn't exist
+if not os.path.exists(exe_dir + "\\token.txt"):
+	open(exe_dir + "\\token.txt", "w").close()
+with open(exe_dir + "\\token.txt", "r") as f:
+	lines = f.readlines()
+	if len(lines) >= 1:
+		refresh_token = lines[0].strip()
+
+if (refresh_token == ""):
 	perform_auth()
+else:
+	get_access_token()
 
 if access_token != "" and refresh_token != "":
+	with open(exe_dir + "\\token.txt", "w") as f:
+		f.write(refresh_token + "\n")
 	run_overlay()

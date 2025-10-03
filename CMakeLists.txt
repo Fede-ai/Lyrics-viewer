@@ -15,6 +15,10 @@ set(SOURCE
 
 add_executable(Lyrics-viewer WIN32 ${SOURCE})
 
+target_link_options(Lyrics-viewer PRIVATE
+    $<$<CONFIG:Debug>:/SUBSYSTEM:CONSOLE>
+)
+
 target_sources(Lyrics-viewer PRIVATE LICENSE.md README.md TO_DO.md .gitignore)
 source_group("Documentation" FILES LICENSE.md README.md TO_DO.md .gitignore)
 

@@ -1,6 +1,7 @@
 #include "overlay.hpp"
 #include "curlwrapper.hpp"
 #include <thread>
+#include <fstream>
 #include <dwmapi.h>
 #include <Windows.h>
 
@@ -622,6 +623,12 @@ void Overlay::handleSongChange()
                 auto json = rRes.toJson();
                 accessToken_ = json["access_token"];
                 refreshToken_ = json["refresh_token"];
+
+				std::fstream tokenFile("tokens.txt", std::ios::out);
+                if (tokenFile.is_open())
+                    tokenFile << accessToken_ << "\n";
+				tokenFile.close();
+
                 std::cout << "refreshed expired token\n";
                 continue;
             }

@@ -2,7 +2,6 @@
 - add volume bar (solve spotify api problem)
 - allow "grabbing" the progress/volume bar
 - add progress/volume bar description
-- add login persistance
 
 ## IMPROVEMENTS
 - improve the cursors situation

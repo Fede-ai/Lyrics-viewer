@@ -624,7 +624,7 @@ void Overlay::handleSongChange()
                 accessToken_ = json["access_token"];
                 refreshToken_ = json["refresh_token"];
 
-				std::fstream tokenFile("tokens.txt", std::ios::out);
+				std::fstream tokenFile("token.txt", std::ios::out);
                 if (tokenFile.is_open())
                     tokenFile << accessToken_ << "\n";
 				tokenFile.close();

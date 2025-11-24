@@ -9,12 +9,11 @@ import os
 import subprocess
 import sys
 
-# === CONFIG ===
 CLIENT_ID = "244ba241897d4c969d1260ad0c844f91"
 REDIRECT_URI = "https://fede-ai.github.io/Lyrics-viewer/index.html"
 SCOPES = "user-modify-playback-state user-read-playback-state user-read-currently-playing"
 
-# === PKCE helpers ===
+#PKCE helpers
 def generate_code_verifier() -> str:
 	return base64.urlsafe_b64encode(secrets.token_bytes(32)).rstrip(b"=").decode("utf-8")
 
@@ -22,21 +21,23 @@ def generate_code_challenge(verifier: str) -> str:
 	digest = hashlib.sha256(verifier.encode("utf-8")).digest()
 	return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("utf-8")
 
-# === Globals ===
 code_verifier = generate_code_verifier()
 access_token = ""
 refresh_token = ""
 window: webview.Window | None = None
-exe_dir = ""
+exe_path = ""
+tokens_dir = ""
 
 #running as exe (release mode)
 if getattr(sys, 'frozen', False):
-	exe_dir = os.path.dirname(sys.executable) + "\\.."
+	tokens_dir = os.path.dirname(sys.executable)
+	exe_path = tokens_dir + "\\..\\Lyrics-viewer.exe"
 #running as script (debug mode)
 else:
-	exe_dir = os.path.dirname(os.path.abspath(__file__)) + "\\build\\Debug"
+	tokens_dir = os.path.dirname(os.path.abspath(__file__)) + "\\build\\Debug"
+	exe_path = tokens_dir + "\\Lyrics-viewer.exe"
 
-# === Build auth URL ===
+#build auth URL
 auth_url = (
 	"https://accounts.spotify.com/authorize"
 	f"?client_id={CLIENT_ID}"
@@ -98,8 +99,7 @@ def perform_auth() -> None:
 		webview.start(debug=True)
 
 def run_overlay() -> None:
-	exe_path = exe_dir + "\\Lyrics-viewer.exe"
-	print(f"Starting overlay at path \"{exe_path}\"...")
+	print(f"Starting overlay at path \"{exe_path}\"")
 
 	if getattr(sys, 'frozen', False):
 		subprocess.Popen(
@@ -133,9 +133,9 @@ def get_access_token() -> None:
 		refresh_token = tokens["refresh_token"]
 
 #open the file in read mode or create it if it doesn't exist
-if not os.path.exists(exe_dir + "\\token.txt"):
-	open(exe_dir + "\\token.txt", "w").close()
-with open(exe_dir + "\\token.txt", "r") as f:
+if not os.path.exists(tokens_dir + "\\token.txt"):
+	open(tokens_dir + "\\token.txt", "w").close()
+with open(tokens_dir + "\\token.txt", "r") as f:
 	lines = f.readlines()
 	if len(lines) >= 1:
 		refresh_token = lines[0].strip()
@@ -146,6 +146,6 @@ else:
 	get_access_token()
 
 if access_token != "" and refresh_token != "":
-	with open(exe_dir + "\\token.txt", "w") as f:
+	with open(tokens_dir + "\\token.txt", "w") as f:
 		f.write(refresh_token + "\n")
 	run_overlay()

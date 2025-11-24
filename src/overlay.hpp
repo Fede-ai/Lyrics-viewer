@@ -42,9 +42,10 @@ private:
 	std::vector<Line> currentLyrics_ = { { L"No Lyrics", 0 } };
 	int currentLine_ = 0;
 	int volumePercent_ = 0;
-	int progress_ = 0;
-	int duration_ = 0;
+	int progress_ = 0; //in ms
+	int duration_ = 0; //in ms
 	bool isPlaying_ = false;
+	size_t timeLastCheck_ = 0;
 
 	sf::Cursor defaultCursor_;
 	sf::Cursor resizeCursor_;

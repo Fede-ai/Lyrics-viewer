@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CONFIGURATION_TYPES "Release;Debug" CACHE STRING "Restricted build types" FORCE)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_directory_properties(PROPERTIES VS_SOLUTION_ITEMS "LICENSE.md;README.md;.gitignore;TO_DO.md")
+source_group("Documentation" FILES LICENSE.md README.md .gitignore TO_DO.md)
+
 set(SOURCE
 	src/button.hpp 
 	src/curlwrapper.cpp src/curlwrapper.hpp 
@@ -18,9 +22,6 @@ add_executable(Lyrics-viewer WIN32 ${SOURCE})
 target_link_options(Lyrics-viewer PRIVATE
     $<$<CONFIG:Debug>:/SUBSYSTEM:CONSOLE>
 )
-
-target_sources(Lyrics-viewer PRIVATE LICENSE.md README.md TO_DO.md .gitignore)
-source_group("Documentation" FILES LICENSE.md README.md TO_DO.md .gitignore)
 
 set(PATH_SFML "C:/SFML-3.0.0" CACHE STRING "Path to the SFML library")
 set(PATH_LIBCURL "C:/curl-8.12.1" CACHE STRING "Path to the libcurl library")

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <dwmapi.h>
 #include <Windows.h>
+#include <chrono>
 
 #pragma comment (lib, "dwmapi.lib")
 
@@ -28,7 +29,7 @@ Overlay::Overlay(std::string at, std::string rt)
     success = resizeTexture_.loadFromFile(path + "/resources/resize.png");
 
 	closeBut_.loadTexture(path + "/resources/close.png");
-    closeBut_.setColors(sf::Color::White, shadowWhite_, sf::Color(240, 30, 30));
+    closeBut_.setColors(sf::Color::White, shadowWhite_, sf::Color(190, 30, 30));
     closeBut_.sprite->setPosition({ wSize_.x - 26.f, 5.f });
 
     success = lockCloseTexture_.loadFromFile(path + "/resources/lock_close.png");
@@ -550,12 +551,32 @@ void Overlay::drawOverlay()
         sf::FloatRect barBg({ wSize_.x - 21.f, 71 }, { 6, wSize_.y - 92.f });
         w_.draw(buildRect(barBg, 3, 4, tbGray_));
 
-        float barPercent = (duration_ == 0) ? 0 : progress_ / float(duration_);
+        float barPercent;
         if (isVolume_)
-			barPercent = volumePercent_ / 100.f;
+            barPercent = volumePercent_ / 100.f;
+        else
+            barPercent = (duration_ == 0) ? 0 : progress_ / float(duration_);
 
         sf::FloatRect bar({ wSize_.x - 21.f, 71 }, { 6, 6 + (wSize_.y - 98.f) * barPercent });
         w_.draw(buildRect(bar, 3, 4, sf::Color::White));
+
+		std::string barPercentStr;
+        if (isVolume_)
+            barPercentStr = std::to_string(volumePercent_) + "/100";
+        else {
+            int minutes = progress_ / 60'000;
+            int seconds = (progress_ / 1'000) % 60;
+            barPercentStr = std::to_string(minutes) + ":" + (seconds < 10 ? "0" : "") + std::to_string(seconds) + "/";
+
+            minutes = duration_ / 60'000;
+            seconds = (duration_ / 1'000) % 60;
+            barPercentStr += std::to_string(minutes) + ":" + (seconds < 10 ? "0" : "") + std::to_string(seconds);
+		}
+        sf::Text barText(font_, barPercentStr, 12);
+        barText.setFillColor(shadowWhite_);
+        barText.setOrigin({ barText.getGlobalBounds().size.x, 0 });
+		barText.setPosition({ wSize_.x - 25.f, wSize_.y - 20.f });
+		w_.draw(barText);
     }
 
     w_.display();
@@ -573,7 +594,25 @@ void Overlay::handleSongChange()
 		return s;
     };
 
-    const float sleepTime = 0.7f;
+    const auto toWstring = [](const std::string& s) {
+        std::wstring w = L"";
+        for (int i = 0; i < s.size(); i++) {
+            if (int(s[i]) > 0)
+                w += wchar_t(s[i]);
+            else {
+                unsigned char ubyte1 = (unsigned char)(s[i]);
+                unsigned char ubyte2 = (unsigned char)(s[i + 1]);
+
+                wchar_t codePoint = ((ubyte1 & 0x1F) << 6) | (ubyte2 & 0x3F);
+                w += codePoint;
+                //skip the next byte
+                i++;
+            }
+        }
+        return w;
+    };
+
+    const float sleepTime = 1.f;
     Request req = Request(Request::Methods::GET);
     req.url = "https://api.spotify.com/v1/me/player/currently-playing";
 
@@ -595,6 +634,7 @@ void Overlay::handleSongChange()
             if (currentSong_ != L"No Song Playing") {
                 currentSong_ = L"No Song Playing";
                 currentLyrics_ = { { L"No Lyrics", 0 } };
+                duration_ = 0, progress_ = 0;
                 currentArtists_.clear();
                 isPlaying_ = false;
                 drawOverlay();
@@ -626,7 +666,7 @@ void Overlay::handleSongChange()
 
 				std::fstream tokenFile("token.txt", std::ios::out);
                 if (tokenFile.is_open())
-                    tokenFile << accessToken_ << "\n";
+                    tokenFile << refreshToken_ << "\n";
 				tokenFile.close();
 
                 std::cout << "refreshed expired token\n";
@@ -649,6 +689,8 @@ void Overlay::handleSongChange()
 		auto json = res.toJson();
         bool needRedraw = isPlaying_ != json["is_playing"];
         isPlaying_ = json["is_playing"];
+        timeLastCheck_ = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
 		//redraw if progress has changed
         if (!json["progress_ms"].is_null()) {
             needRedraw = (progress_ != json["progress_ms"]) || needRedraw;
@@ -671,7 +713,7 @@ void Overlay::handleSongChange()
         if (currentType_ != oldType && currentType_ != "track") {
 			currentSong_ = std::wstring(currentType_.begin(), currentType_.end()) + L" - No Lyrics";
             currentLyrics_ = { { L"No Lyrics Available For This Type Of Content", 0 } };
-            currentArtists_ = { }, duration_ = 0, currentLine_ = 0;
+            currentArtists_ = { }, duration_ = 0, progress_ = 0, currentLine_ = 0;
 
             drawOverlay();
             sf::sleep(sf::seconds(sleepTime));
@@ -684,44 +726,17 @@ void Overlay::handleSongChange()
             continue;
         }
 
-        std::string name = json["item"]["name"];
-        std::wstring wName = L"";
-        for (int i = 0; i < name.size(); i++) {
-            if (int(name[i]) > 0)
-                wName += wchar_t(name[i]);
-            else {
-                unsigned char ubyte1 = unsigned char(name[i]);
-                unsigned char ubyte2 = unsigned char(name[i + 1]);
-
-                wchar_t codePoint = ((ubyte1 & 0x1F) << 6) | (ubyte2 & 0x3F);
-                wName += codePoint;
-                //skip the next byte
-                i++;
-            }
-        }
+        std::wstring name = toWstring(json["item"]["name"]);
         //new song detected
-        if (currentSong_ != wName) {
-            currentSong_ = wName;
+        if (currentSong_ != name) {
+            currentSong_ = name;
             duration_ = json["item"]["duration_ms"];
             currentArtists_ = { }, currentLine_ = 0;
-            for (const auto& a : json["item"]["artists"]) {
-				std::string aName = a["name"];
-                std::wstring wAName = L"";
-                for (int i = 0; i < aName.size(); i++) {
-                    if (int(aName[i]) > 0)
-                        wAName += wchar_t(aName[i]);
-                    else {
-                        unsigned char ubyte1 = unsigned char(aName[i]);
-                        unsigned char ubyte2 = unsigned char(aName[i + 1]);
-
-                        wchar_t codePoint = ((ubyte1 & 0x1F) << 6) | (ubyte2 & 0x3F);
-                        wAName += codePoint;
-                        //skip the next byte
-                        i++;
-                    }
-                }
-                currentArtists_.push_back(wAName);
-            }
+            for (const auto& a : json["item"]["artists"])
+                currentArtists_.push_back(toWstring(a["name"]));
+            
+            currentLyrics_ = { { L"Fetching Lyrics...", 0 } };
+            drawOverlay();
 
             //request lyrics from LRCLIB
 			Request lReq = Request(Request::Methods::GET);
@@ -737,24 +752,9 @@ void Overlay::handleSongChange()
 			//process raw lyrics
             else {
                 currentLyrics_ = { { L"", 0 } };
-
-				std::string body = lRes.toJson()["syncedLyrics"];
-                std::wstring wBody = L"";
-                for (int i = 0; i < body.size(); i++) {
-                    if (int(body[i]) > 0)
-                        wBody += wchar_t(body[i]);
-                    else {
-                        unsigned char ubyte1 = unsigned char(body[i]);
-                        unsigned char ubyte2 = unsigned char(body[i + 1]);
-
-                        wchar_t codePoint = ((ubyte1 & 0x1F) << 6) | (ubyte2 & 0x3F);
-                        wBody += codePoint;
-                        //skip the next byte
-                        i++;
-                    }
-                }
-
-                std::wstringstream stream(wBody);
+                std::wstring body = toWstring(lRes.toJson()["syncedLyrics"]);
+                
+                std::wstringstream stream(body);
                 std::wstring line;
                 while (std::getline(stream, line)) {
                     if (line.empty()) 
@@ -778,9 +778,9 @@ void Overlay::handleSongChange()
 
                     auto& last = currentLyrics_[currentLyrics_.size() - 1];
                     if (last.first == L"" && time - last.second < 1'500)
-                        last = { line, std::max(0, time - 500) };
+                        last = { line, std::max(0, time - 50) };
                     else
-					    currentLyrics_.push_back({ line, std::max(0, time - 500) });
+					    currentLyrics_.push_back({ line, std::max(0, time - 50) });
                 }
             }
         }
@@ -811,8 +811,11 @@ void Overlay::scrollLyrics()
 			continue;
 		}
 
+        size_t surplus = 0;
+        if (isPlaying_)
+            surplus = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - timeLastCheck_;
 		int i = 0;
-		while (i < currentLyrics_.size() - 1 && currentLyrics_[size_t(i + 1)].second < progress_)
+		while (i < currentLyrics_.size() - 1 && currentLyrics_[size_t(i + 1)].second < int(progress_ + surplus))
 			i++;
 
         if (i != currentLine_) {
@@ -820,7 +823,7 @@ void Overlay::scrollLyrics()
 			drawOverlay();
         }
 
-		sf::sleep(sf::milliseconds(70));
+		sf::sleep(sf::milliseconds(100));
     }
 }
 void Overlay::expandWindow()

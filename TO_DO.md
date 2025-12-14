@@ -1,11 +1,11 @@
 ## FEATURES
 - add volume bar (solve spotify api problem)
-- allow "grabbing" the progress/volume bar
+- allow "grabbing" of the progress/volume bar
 
 ## IMPROVEMENTS
-- improve lines spacing/font size
-- add program icon/author
-- improve lyrics fetching
-- improve font
+- improve lines spacing/font size (adaptive)
+- improve lyrics fetching (multi-source)
 - get all colors/settings from json file
-- improve the cursors situation
+
+- get better font (maybe)
+- improve the cursors situation (maybe)

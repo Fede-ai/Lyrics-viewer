@@ -1,3 +1,5 @@
 # ignore the current build
 build/
+Lyrics-viewer Auth.spec
+Lyrics-viewer-Auth.spec
 Lyrics-viewer.spec

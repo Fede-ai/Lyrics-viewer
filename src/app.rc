@@ -1,0 +1,27 @@
+#include <windows.h>
+IDI_ICON1 ICON "../resources/icon.ico"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "Federico Lucchi"
+            VALUE "FileDescription", "Minimal overlay showing lyrics for Spotify songs"
+            VALUE "ProductName", "Lyrics-viewer"
+            VALUE "LegalCopyright", "Copyright (c) 2025, Federico Lucchi"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

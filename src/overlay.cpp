@@ -15,48 +15,46 @@ Overlay::Overlay(std::string at, std::string rt)
 	accessToken_(at),
 	refreshToken_(rt)
 {
-    char rawPath[256];
-    GetModuleFileNameA(NULL, rawPath, 256);
-    std::string path = std::string(rawPath).substr(0, std::string(rawPath).find_last_of('\\'));
-
     float width = sf::VideoMode::getDesktopMode().size.x / 3.8f;
 	wSize_ = sf::Vector2i(int(width), int(width * .6f));
     wSize_.x = std::max(wSize_.x, 350), wSize_.y = std::max(wSize_.y, 200);
 
     titleBar_ = sf::FloatRect({ 11, 11 }, { wSize_.x - float(10 + 10 + 24), 25 });
     background_ = sf::FloatRect({ 0, 0 }, sf::Vector2f(wSize_));
-    bool success = font_.openFromFile(path + "/resources/AveriaSansLibre-Bold.ttf");
-    success = resizeTexture_.loadFromFile(path + "/resources/resize.png");
+    bool success = font_.openFromFile("resources/AveriaSansLibre-Bold.ttf");
+    success = resizeTexture_.loadFromFile("resources/resize.png");
 
-	closeBut_.loadTexture(path + "/resources/close.png");
+	closeBut_.loadTexture("resources/close.png");
     closeBut_.setColors(sf::Color::White, shadowWhite_, sf::Color(190, 30, 30));
     closeBut_.sprite->setPosition({ wSize_.x - 26.f, 5.f });
 
-    success = lockCloseTexture_.loadFromFile(path + "/resources/lock_close.png");
-    lockBut_.loadTexture(path + "/resources/lock_open.png");
+    success = lockCloseTexture_.loadFromFile("resources/lock_close.png");
+    lockBut_.loadTexture("resources/lock_open.png");
     lockBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
     lockBut_.sprite->setPosition({ wSize_.x - 25.f, 25.5f });
 
-    volumeBut_.loadTexture(path + "/resources/volume.png");
+    volumeBut_.loadTexture("resources/volume.png");
     volumeBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
     volumeBut_.sprite->setPosition({ wSize_.x - 26.f, 47.5f });
     
-	prevBut_.loadTexture(path + "/resources/prev.png");
+	prevBut_.loadTexture("resources/prev.png");
     prevBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
     prevBut_.sprite->setPosition({ titleBar_.position.x + titleBar_.size.x - 15 - 40 - 8,
         titleBar_.position.y + titleBar_.size.y / 2.f - 8 });
 
-    success = pauseTexture_.loadFromFile(path + "/resources/pause.png");
-    playBut_.loadTexture(path + "/resources/play.png");
+    success = pauseTexture_.loadFromFile("resources/pause.png");
+    playBut_.loadTexture("resources/play.png");
     playBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
     playBut_.sprite->setPosition({ titleBar_.position.x + titleBar_.size.x - 15 - 20 - 8,
         titleBar_.position.y + titleBar_.size.y / 2.f - 8 });
 
-    nextBut_.loadTexture(path + "/resources/prev.png");
+    nextBut_.loadTexture("resources/prev.png");
     nextBut_.setColors(sf::Color::White, shadowWhite_, pressGray_);
     nextBut_.sprite->setScale({ -1, 1 });
     nextBut_.sprite->setPosition({ titleBar_.position.x + titleBar_.size.x - 15 + 8,
         titleBar_.position.y + titleBar_.size.y / 2.f - 8 });
+
+    iconPath_ = "resources/icon.png";
 }
 
 void Overlay::run()
@@ -70,6 +68,9 @@ void Overlay::run()
 	w_.setFramerateLimit(60);
 	w_.setKeyRepeatEnabled(false);
     bool success = w_.setActive(false);
+    sf::Image icon;
+    if (icon.loadFromFile(iconPath_))
+        w_.setIcon(icon);
 
 	//set window style to borderless
     MARGINS margins;
@@ -340,7 +341,7 @@ bool Overlay::handleEvent(std::optional<sf::Event> e)
 }
 void Overlay::drawOverlay()
 {
-    //std::cout << "redrawing overlay\n";
+	drawCounter_++;
     const float vc = titleBar_.position.y * 2 + titleBar_.size.y - 10
         + (w_.getSize().y - titleBar_.position.y * 2 - titleBar_.size.y) / 2.f;
 
@@ -539,6 +540,13 @@ void Overlay::drawOverlay()
     lockBut_.sprite->setTexture(isLocked_ ? lockCloseTexture_ : lockBut_.texture);
     w_.draw(*lockBut_.sprite);
 
+ #ifndef NDEBUG
+    sf::Text debugText(font_, "Draw #" + std::to_string(drawCounter_), 10);
+    debugText.setFillColor(shadowWhite_);
+    debugText.setPosition({ wSize_.x - 90.f, 35.f });
+    w_.draw(debugText);
+ #endif
+
     //draw the progress/volume bar
     if (!isContracted_) {
         w_.draw(*volumeBut_.sprite);
@@ -693,17 +701,18 @@ void Overlay::handleSongChange()
 
 		//redraw if progress has changed
         if (!json["progress_ms"].is_null()) {
-            needRedraw = (progress_ != json["progress_ms"]) || needRedraw;
+            needRedraw = (progress_ != json["progress_ms"] && !isContracted_) || needRedraw;
             progress_ = json["progress_ms"];
         }
         //redraw if volume has changed
 		if (!json["device"]["volume_percent"].is_null()) {
-			needRedraw = (volumePercent_ != json["device"]["volume_percent"]) || needRedraw;
-			volumePercent_ = json["device"]["volume_percent"];
+			int newVolume = json["device"]["volume_percent"];
+			needRedraw = (volumePercent_ != newVolume && !isContracted_) || needRedraw;
+			volumePercent_ = newVolume;
 		}
         //set default volume to 0
         else {
-			needRedraw = (volumePercent_ != 0) || needRedraw;
+			needRedraw = (volumePercent_ != 0 && !isContracted_) || needRedraw;
 			volumePercent_ = 0;
         }
 
@@ -805,7 +814,8 @@ void Overlay::scrollLyrics()
 		if (currentLyrics_.size() == 1) {
             if (currentLine_ != 0) {
                 currentLine_ = 0;
-                drawOverlay();
+                if (!isContracted_)
+                    drawOverlay();
             }
 			sf::sleep(sf::seconds(1));
 			continue;
@@ -820,7 +830,8 @@ void Overlay::scrollLyrics()
 
         if (i != currentLine_) {
 			currentLine_ = i;
-			drawOverlay();
+			if (!isContracted_)
+			    drawOverlay();
         }
 
 		sf::sleep(sf::milliseconds(100));

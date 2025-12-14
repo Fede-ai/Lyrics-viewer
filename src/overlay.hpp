@@ -23,6 +23,7 @@ private:
 
 	sf::RenderWindow w_;
 	std::mutex mutex_;
+	std::string iconPath_ = "";
 
 	std::string accessToken_ = "";
 	std::string refreshToken_ = "";
@@ -37,15 +38,16 @@ private:
 	sf::Vector2i startWinPos_, startWinSize_;
 
 	std::string currentType_ = "";
-	std::wstring currentSong_ = L"No Song Playing";
+	std::wstring currentSong_ = L"Fetching Song...";
 	std::vector<std::wstring> currentArtists_;
-	std::vector<Line> currentLyrics_ = { { L"No Lyrics", 0 } };
+	std::vector<Line> currentLyrics_ = { { L"Fetching Lyrics...", 0 } };;
 	int currentLine_ = 0;
 	int volumePercent_ = 0;
 	int progress_ = 0; //in ms
 	int duration_ = 0; //in ms
 	bool isPlaying_ = false;
 	size_t timeLastCheck_ = 0;
+	size_t drawCounter_ = 0;
 
 	sf::Cursor defaultCursor_;
 	sf::Cursor resizeCursor_;

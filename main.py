@@ -78,7 +78,7 @@ class Api:
 		).json()
 		'''
 
-		time.sleep(1.5)
+		time.sleep(1)
 		assert(window != None)
 		window.destroy()
 

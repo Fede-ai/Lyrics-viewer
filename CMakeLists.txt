@@ -18,7 +18,11 @@ set(SOURCE
 )
 
 add_executable(Lyrics-viewer WIN32 ${SOURCE})
+target_sources(Lyrics-viewer PRIVATE src/app.rc)
 
+set_target_properties(Lyrics-viewer PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:Lyrics-viewer>"
+)
 target_link_options(Lyrics-viewer PRIVATE
     $<$<CONFIG:Debug>:/SUBSYSTEM:CONSOLE>
 )
@@ -56,7 +60,6 @@ add_custom_command(TARGET Lyrics-viewer POST_BUILD
 	$<$<CONFIG:Release>:${PATH_SFML}/bin/sfml-graphics-3.dll>
 	$<$<CONFIG:Debug>:${PATH_SFML}/bin/sfml-graphics-d-3.dll>
 	"${PATH_LIBCURL}/bin/libcurl-x64.dll"
-	"${CMAKE_SOURCE_DIR}/dep/cacert.pem"
 	$<TARGET_FILE_DIR:Lyrics-viewer>	
 
 	COMMAND ${CMAKE_COMMAND} -E copy_directory

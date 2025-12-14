@@ -7,7 +7,7 @@ CurlWrapper::CurlWrapper()
 
     char rawPath[256];
     GetModuleFileNameA(NULL, rawPath, 256);
-    caInfo = std::string(rawPath).substr(0, std::string(rawPath).find_last_of('\\')) + "\\cacert.pem";
+    caInfo = std::string(rawPath).substr(0, std::string(rawPath).find_last_of('\\')) + "\\resources\\cacert.pem";
 }
 CurlWrapper::~CurlWrapper()
 {
@@ -36,7 +36,6 @@ Response CurlWrapper::sendRequest(const Request& req)
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, req.body.c_str());
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
     }
-
 
     curl_easy_setopt(curl, CURLOPT_CAINFO, caInfo.c_str());
     curl_easy_setopt(curl, CURLOPT_URL, req.url.c_str());

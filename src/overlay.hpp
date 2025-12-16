@@ -13,9 +13,11 @@ public:
 private:
 	bool handleEvent(std::optional<sf::Event> e);
 	void drawOverlay();
+	void drawLyrics();
 
 	//on its own thread
 	void handleSongChange();
+	void extractLyrics(std::wstring w);
 	//on its own thread
 	void scrollLyrics();
 	//on its own thread
@@ -23,7 +25,6 @@ private:
 
 	sf::RenderWindow w_;
 	std::mutex mutex_;
-	std::string iconPath_ = "";
 
 	std::string accessToken_ = "";
 	std::string refreshToken_ = "";
@@ -40,7 +41,7 @@ private:
 	std::string currentType_ = "";
 	std::wstring currentSong_ = L"Fetching Song...";
 	std::vector<std::wstring> currentArtists_;
-	std::vector<Line> currentLyrics_ = { { L"Fetching Lyrics...", 0 } };;
+	std::vector<Line> currentLyrics_ = { { L"Fetching Lyrics...", 0 } };
 	int currentLine_ = 0;
 	int volumePercent_ = 0;
 	int progress_ = 0; //in ms

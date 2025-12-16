@@ -67,17 +67,6 @@ class Api:
 		access_token = tokens["access_token"]
 		refresh_token = tokens["refresh_token"]
 
-		'''
-		with open("tokens.txt", "w") as f:
-			f.write(access_token + "\n")
-			f.write(refresh_token + "\n")
-
-		_ = requests.get(
-			"https://api.spotify.com/v1/me",
-			headers={"Authorization": f"Bearer {access_token}"}
-		).json()
-		'''
-
 		time.sleep(1)
 		assert(window != None)
 		window.destroy()

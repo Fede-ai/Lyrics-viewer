@@ -5,6 +5,7 @@
 #include <dwmapi.h>
 #include <Windows.h>
 #include <chrono>
+#include <utility>
 
 #pragma comment (lib, "dwmapi.lib")
 
@@ -53,8 +54,6 @@ Overlay::Overlay(std::string at, std::string rt)
     nextBut_.sprite->setScale({ -1, 1 });
     nextBut_.sprite->setPosition({ titleBar_.position.x + titleBar_.size.x - 15 + 8,
         titleBar_.position.y + titleBar_.size.y / 2.f - 8 });
-
-    iconPath_ = "resources/icon.png";
 }
 
 void Overlay::run()
@@ -69,7 +68,7 @@ void Overlay::run()
 	w_.setKeyRepeatEnabled(false);
     bool success = w_.setActive(false);
     sf::Image icon;
-    if (icon.loadFromFile(iconPath_))
+    if (icon.loadFromFile("resources/icon.png"))
         w_.setIcon(icon);
 
 	//set window style to borderless
@@ -342,9 +341,6 @@ bool Overlay::handleEvent(std::optional<sf::Event> e)
 void Overlay::drawOverlay()
 {
 	drawCounter_++;
-    const float vc = titleBar_.position.y * 2 + titleBar_.size.y - 10
-        + (w_.getSize().y - titleBar_.position.y * 2 - titleBar_.size.y) / 2.f;
-
     const auto buildRect = [](sf::FloatRect fr, float r, int n, sf::Color c) {
 		auto p = fr.position;
 		auto s = fr.size;
@@ -379,128 +375,8 @@ void Overlay::drawOverlay()
     w_.draw(buildRect(background_, 18, 7, bgGray_));
 
 	//draw the lyrics (prev, current, next)
-    if (!isContracted_) {
-        const int lineDist = 50;
-
-        //draw previous line
-        if (currentLine_ - 1 >= 0) {
-            bool splitLine = false;
-            sf::Text prev1(font_, currentLyrics_[currentLine_ - 1].first, 15);
-            prev1.setFillColor(secLineCol_);
-            sf::Text prev2(font_, "", 15);
-            prev2.setFillColor(secLineCol_);
-            //split the line into two if needed
-            if (prev1.getGlobalBounds().size.x > titleBar_.size.x * 15 / 20.f) {
-                std::wstring l = currentLyrics_[currentLine_ - 1].first;
-                const size_t mid = l.size() / 2;;
-                for (size_t d = 0; d < mid; d++) {
-                    if (mid + d < l.size() && l[mid + d] == ' ') {
-                        prev1.setString(l.substr(0, mid + d));
-                        prev2.setString(l.substr(mid + d + 1, l.size()));
-                        splitLine = true;
-                        break;
-                    }
-                    if (mid - d >= 0 && l[mid - d] == ' ') {
-                        prev1.setString(l.substr(0, mid - d));
-                        prev2.setString(l.substr(mid - d + 1, l.size()));
-                        splitLine = true;
-                        break;
-                    }
-                }
-            }
-
-            prev1.setOrigin({ prev1.getGlobalBounds().size.x / 2.f, prev1.getGlobalBounds().size.y / 2.f });
-            prev2.setOrigin({ prev2.getGlobalBounds().size.x / 2.f, prev2.getGlobalBounds().size.y / 2.f });
-
-            //draw second line if needed
-            if (splitLine) {
-                prev1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 - lineDist - 9 });
-                prev2.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 - lineDist + 9 });
-                w_.draw(prev2);
-            }
-            else
-                prev1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 - lineDist });
-            w_.draw(prev1);
-        }
-        //draw next line
-        if (currentLine_ + 1 < int(currentLyrics_.size())) {
-            bool splitLine = false;
-            sf::Text next1(font_, currentLyrics_[currentLine_ + 1].first, 15);
-            next1.setFillColor(secLineCol_);
-            sf::Text next2(font_, "", 15);
-            next2.setFillColor(secLineCol_);
-            //split the line into two if needed
-            if (next1.getGlobalBounds().size.x > titleBar_.size.x * 15 / 20.f) {
-                std::wstring l = currentLyrics_[currentLine_ + 1].first;
-                const size_t mid = l.size() / 2;;
-                for (size_t d = 0; d < mid; d++) {
-                    if (mid + d < l.size() && l[mid + d] == ' ') {
-                        next1.setString(l.substr(0, mid + d));
-                        next2.setString(l.substr(mid + d + 1, l.size()));
-                        splitLine = true;
-                        break;
-                    }
-                    if (mid - d >= 0 && l[mid - d] == ' ') {
-                        next1.setString(l.substr(0, mid - d));
-                        next2.setString(l.substr(mid - d + 1, l.size()));
-                        splitLine = true;
-                        break;
-                    }
-                }
-            }
-
-            next1.setOrigin({ next1.getGlobalBounds().size.x / 2.f, next1.getGlobalBounds().size.y / 2.f });
-            next2.setOrigin({ next2.getGlobalBounds().size.x / 2.f, next2.getGlobalBounds().size.y / 2.f });
-
-            //draw second line if needed
-            if (splitLine) {
-                next1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 + lineDist - 9 });
-                next2.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 + lineDist + 9 });
-                w_.draw(next2);
-            }
-            else
-                next1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 2 + lineDist });
-            w_.draw(next1);
-        }
-
-        bool splitLine = false;
-        sf::Text line1(font_, currentLyrics_[currentLine_].first, 20);
-        line1.setFillColor(mainLineCol_);
-        sf::Text line2(font_, "", 20);
-        line2.setFillColor(mainLineCol_);
-        //split the line into two if needed
-        if (line1.getGlobalBounds().size.x > titleBar_.size.x) {
-            std::wstring l = currentLyrics_[currentLine_].first;
-            const size_t mid = l.size() / 2;;
-            for (size_t d = 0; d < mid; d++) {
-                if (mid + d < l.size() && l[mid + d] == ' ') {
-                    line1.setString(l.substr(0, mid + d));
-                    line2.setString(l.substr(mid + d + 1, l.size()));
-                    splitLine = true;
-                    break;
-                }
-                if (mid - d >= 0 && l[mid - d] == ' ') {
-                    line1.setString(l.substr(0, mid - d));
-                    line2.setString(l.substr(mid - d + 1, l.size()));
-                    splitLine = true;
-                    break;
-                }
-            }
-        }
-
-        line1.setOrigin({ line1.getGlobalBounds().size.x / 2.f, line1.getGlobalBounds().size.y / 2.f });
-        line2.setOrigin({ line2.getGlobalBounds().size.x / 2.f, line2.getGlobalBounds().size.y / 2.f });
-
-        //draw second line if needed
-        if (splitLine) {
-            line1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc - 11 });
-            line2.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc + 11 });
-            w_.draw(line2);
-        }
-        else
-            line1.setPosition({ titleBar_.position.x + titleBar_.size.x / 2.f, vc });
-        w_.draw(line1);
-    }
+    if (!isContracted_)
+		drawLyrics();
 
 	//draw the title bar
     w_.draw(buildRect(titleBar_, 10, 7, tbGray_));
@@ -590,6 +466,118 @@ void Overlay::drawOverlay()
     w_.display();
     success = w_.setActive(false);
     mutex_.unlock();
+}
+void Overlay::drawLyrics()
+{
+	auto splitString = [](const std::wstring& s) {
+        const size_t mid = s.size() / 2;;
+        for (size_t d = 0; d < mid; d++) {
+            if (mid + d < s.size() && s[mid + d] == ' ')
+                return std::make_pair(s.substr(0, mid + d), s.substr(mid + d + 1));
+            if (mid - d >= 0 && s[mid - d] == ' ')
+                return std::make_pair(s.substr(0, mid - d), s.substr(mid - d + 1));
+        }
+		return std::make_pair(s, std::wstring());
+        };
+
+    const float vc = (titleBar_.position.y + titleBar_.size.y + w_.getSize().y) / 2.f;
+    const float hc = titleBar_.position.x + titleBar_.size.x / 2.f;
+    
+	const int horizontalPadding = 20;
+	const int defaultMainFontSize = 20;
+	const int defaultSecFontSize = 15;
+
+    const float lineDistance = 10 + wSize_.y * 0.2f;
+	const float lineCenterRatio = 0.73f;
+	const float multilineDistanceRatio = 0.63f;
+
+	//draw previous and next lines
+    for (int offset = -1; offset <= 1; offset += 2) {
+        if (currentLine_ + offset < 0 || currentLine_ + offset >= int(currentLyrics_.size()))
+            continue;
+
+        //initially set font size to 'main' size to keep consistancy in splitting logic
+        sf::Text line1(font_, currentLyrics_[currentLine_ + offset].first, defaultMainFontSize);
+        sf::Text line2(font_, "", defaultSecFontSize);
+        line1.setFillColor(secLineCol_);
+        line2.setFillColor(secLineCol_);
+
+        //split the line into two if needed (or reduce font size)
+        int secFontSize = defaultSecFontSize;
+        if (line1.getGlobalBounds().size.x > titleBar_.size.x - horizontalPadding) {
+            auto s = splitString(currentLyrics_[currentLine_ + offset].first);
+            line1.setString(s.first);
+            line2.setString(s.second);
+
+            //reduce font size instead (if needed)
+            line1.setCharacterSize(secFontSize);
+            while (std::max(line1.getGlobalBounds().size.x, line2.getGlobalBounds().size.x) > titleBar_.size.x - horizontalPadding) {
+                secFontSize--;
+                line1.setCharacterSize(secFontSize);
+                line2.setCharacterSize(secFontSize);
+            }
+        }
+        line1.setCharacterSize(secFontSize);
+
+        line1.setOrigin({ line1.getGlobalBounds().size.x / 2.f, secFontSize * lineCenterRatio });
+        line2.setOrigin({ line2.getGlobalBounds().size.x / 2.f, secFontSize * lineCenterRatio });
+        //draw only one line
+        if (line2.getString().isEmpty()) {
+            line1.setPosition({ hc, vc + offset * lineDistance });
+            w_.draw(line1);
+        }
+        //draw both lines
+        else {
+            line1.setPosition({ hc, vc + offset * lineDistance - secFontSize * multilineDistanceRatio });
+            line2.setPosition({ hc, vc + offset * lineDistance + secFontSize * multilineDistanceRatio });
+            w_.draw(line2);
+            w_.draw(line1);
+        }
+    }
+
+    sf::Text main1(font_, currentLyrics_[currentLine_].first, defaultMainFontSize);
+    sf::Text main2(font_, "", defaultMainFontSize);
+    main1.setFillColor(mainLineCol_);
+    main2.setFillColor(mainLineCol_);
+
+	//split the line into two if needed (or reduce font size)
+	int mainFontSize = defaultMainFontSize;
+    if (main1.getGlobalBounds().size.x > titleBar_.size.x - horizontalPadding) {
+        auto s = splitString(currentLyrics_[currentLine_].first);
+        main1.setString(s.first);
+        main2.setString(s.second);
+        
+        //reduce font size instead (if needed)
+		while (std::max(main1.getGlobalBounds().size.x, main2.getGlobalBounds().size.x) > titleBar_.size.x - horizontalPadding) {
+            mainFontSize--;
+			main1.setCharacterSize(mainFontSize);
+			main2.setCharacterSize(mainFontSize);
+        }
+    }
+    
+    main1.setOrigin({ main1.getGlobalBounds().size.x / 2.f, mainFontSize * lineCenterRatio });
+    main2.setOrigin({ main2.getGlobalBounds().size.x / 2.f, mainFontSize * lineCenterRatio });
+	//draw only one line
+    if (main2.getString().isEmpty()) {        
+        main1.setPosition({ hc, vc });
+        w_.draw(main1);
+    }
+    //draw both lines
+    else {
+        main1.setPosition({ hc, vc - mainFontSize * multilineDistanceRatio });
+        main2.setPosition({ hc, vc + mainFontSize * multilineDistanceRatio });
+        w_.draw(main2);
+        w_.draw(main1);
+    }
+
+    //sf::CircleShape dot(5);
+    //dot.setFillColor(sf::Color::Green);
+    //dot.setPosition({ hc - 5, vc - 5 - lineDistance });
+    //w_.draw(dot);
+    //dot.setPosition({ hc - 5, vc - 5 });
+    //w_.draw(dot);
+    //dot.setPosition({ hc - 5, vc - 5 + lineDistance });
+    //w_.draw(dot);
 }
 
 void Overlay::handleSongChange()
@@ -759,39 +747,8 @@ void Overlay::handleSongChange()
             if (lRes.code != 200 || lRes.toJson()["syncedLyrics"].is_null())
                 currentLyrics_ = { { L"No Lyrics Available", 0 } };
 			//process raw lyrics
-            else {
-                currentLyrics_ = { { L"", 0 } };
-                std::wstring body = toWstring(lRes.toJson()["syncedLyrics"]);
-                
-                std::wstringstream stream(body);
-                std::wstring line;
-                while (std::getline(stream, line)) {
-                    if (line.empty()) 
-                        continue;
-
-                    line = line.substr(line.find_first_of('[') + 1, line.size());
-                    while (!(line[0] >= '0' && line[0] <= '9') && line[0] != ':')
-                        line = line.substr(1, line.size());
-
-                    int time = 60'000 * std::stoi(line.substr(0, line.find_first_of(':')));
-					line = line.substr(line.find_first_of(':') + 1, line.size());
-
-					time += 1'000 * std::stoi(line.substr(0, line.find_first_of('.')));
-					line = line.substr(line.find_first_of('.') + 1, line.size());
-
-					time += 10 * std::stoi(line.substr(0, line.find_first_of(']')));
-					line = line.substr(line.find_first_of(']') + 1, line.size());
-
-                    if (line[0] == ' ')
-                        line = line.substr(1, line.size());
-
-                    auto& last = currentLyrics_[currentLyrics_.size() - 1];
-                    if (last.first == L"" && time - last.second < 1'500)
-                        last = { line, std::max(0, time - 50) };
-                    else
-					    currentLyrics_.push_back({ line, std::max(0, time - 50) });
-                }
-            }
+            else
+                extractLyrics(toWstring(lRes.toJson()["syncedLyrics"]));
         }
 
         if (needRedraw)
@@ -801,6 +758,45 @@ void Overlay::handleSongChange()
         sf::sleep(sf::seconds(sleepTime));
     }
 }
+void Overlay::extractLyrics(std::wstring w)
+{
+    currentLyrics_ = { { L"", 0 } };
+
+    std::wstringstream stream(w);
+    std::wstring line;
+    while (std::getline(stream, line)) {
+        if (line.empty())
+            continue;
+        
+        try {
+            line = line.substr(line.find_first_of('[') + 1);
+            while (!(line[0] >= '0' && line[0] <= '9') && line[0] != ':')
+                line = line.substr(1);
+
+            int time = 60'000 * std::stoi(line.substr(0, line.find_first_of(':')));
+            line = line.substr(line.find_first_of(':') + 1);
+
+            time += 1'000 * std::stoi(line.substr(0, line.find_first_of('.')));
+            line = line.substr(line.find_first_of('.') + 1);
+
+            time += 10 * std::stoi(line.substr(0, line.find_first_of(']')));
+            line = line.substr(line.find_first_of(']') + 1);
+
+            if (line[0] == ' ')
+                line = line.substr(1);
+
+            auto& last = currentLyrics_[currentLyrics_.size() - 1];
+            if (last.first == L"" && time - last.second < 1'500)
+                last = { line, std::max(0, time - 50) };
+            else
+                currentLyrics_.push_back({ line, std::max(0, time - 50) });
+        }
+		catch (std::exception& e) {
+			std::cerr << "error parsing lyrics line: " << std::string(e.what()) << "\n";
+        }
+    }
+}
+
 void Overlay::scrollLyrics()
 {
 	while (isRunning_) {

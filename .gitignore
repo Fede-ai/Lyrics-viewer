@@ -1,5 +1,8 @@
 # ignore the current build
 build/
-Lyrics-viewer Auth.spec
+
+# python files
 Lyrics-viewer-Auth.spec
-Lyrics-viewer.spec
+
+# vs .rc symbols
+*.aps

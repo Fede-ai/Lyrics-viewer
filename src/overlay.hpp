@@ -7,7 +7,7 @@ typedef std::pair<std::wstring, int> Line;
 
 class Overlay {
 public:
-	Overlay(std::string at, std::string rt);
+	Overlay(std::string at, std::string rt, std::string path);
 	void run();
 
 private:
@@ -72,6 +72,8 @@ private:
 	const sf::Color secLineCol_ = sf::Color(220, 220, 220);
 
 	sf::Vector2i wSize_ = sf::Vector2i(0, 0);
+	const sf::Vector2i minWSize_ = sf::Vector2i(360, 200);
+	const std::string tokenFilePath_;
 	sf::FloatRect titleBar_;
 	sf::FloatRect background_;
 };

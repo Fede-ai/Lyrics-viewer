@@ -26,14 +26,15 @@ int performAuth() {
 
 int main(int argc, char* argv[])
 {
-    if (argc != 3)
+	if (argc != 4)
 		return performAuth();
 	
-	std::string at = "", rt = "";
+	std::string at = "", rt = "", path;
 	at = argv[1];
 	rt = argv[2];
+	path = argv[3];
 
-    Overlay overlay(at, rt);
+    Overlay overlay(at, rt, path);
     overlay.run();
 
     return 0;

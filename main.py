@@ -8,6 +8,7 @@ from screeninfo import get_monitors
 import os
 import subprocess
 import sys
+import ctypes
 
 CLIENT_ID = "244ba241897d4c969d1260ad0c844f91"
 REDIRECT_URI = "https://fede-ai.github.io/Lyrics-viewer/index.html"
@@ -27,15 +28,16 @@ refresh_token = ""
 window: webview.Window | None = None
 exe_path = ""
 tokens_dir = ""
+is_debug = not getattr(sys, 'frozen', False)
 
-#running as exe (release mode)
-if getattr(sys, 'frozen', False):
-	tokens_dir = os.path.dirname(sys.executable)
-	exe_path = tokens_dir + "\\..\\Lyrics-viewer.exe"
 #running as script (debug mode)
-else:
+if is_debug:
 	tokens_dir = os.path.dirname(os.path.abspath(__file__)) + "\\build\\Debug"
 	exe_path = tokens_dir + "\\Lyrics-viewer.exe"
+#running as exe (release mode)
+else:
+	tokens_dir = os.path.dirname(sys.executable)
+	exe_path = tokens_dir + "\\..\\Lyrics-viewer.exe"
 
 #build auth URL
 auth_url = (
@@ -51,6 +53,13 @@ auth_url = (
 class Api: 
 	def log(self, code):
 		token_url = "https://accounts.spotify.com/api/token"
+
+		if code is None or code == "":			
+			time.sleep(1)
+			assert(window != None)
+			window.destroy()
+			return
+
 		response = requests.post(
 			token_url,
 			data={
@@ -61,8 +70,15 @@ class Api:
 				"code_verifier": code_verifier
 			}
 		)
-		tokens = response.json()
+		if response.status_code < 200 or response.status_code >= 300:
+			print(response.text)
+			time.sleep(1)
+			assert(window != None)
+			window.destroy()
+			ctypes.windll.user32.MessageBoxW(0, f"Error {response.status_code} while fetching tokens", "Error during authentication", 1)
+			return
 
+		tokens = response.json()
 		global access_token, refresh_token
 		access_token = tokens["access_token"]
 		refresh_token = tokens["refresh_token"]
@@ -71,6 +87,7 @@ class Api:
 		assert(window != None)
 		window.destroy()
 
+#if there was no cached valid refresh token
 def perform_auth() -> None:
 	m = get_monitors()[0]
 	h = int(m.height / 1.5)
@@ -79,39 +96,46 @@ def perform_auth() -> None:
 	y = int(m.height / 2 - h / 2)
 
 	global window
-	window = webview.create_window("Spotify Login", auth_url, x=x, y=y, width=w, height=h, on_top=True, js_api=Api())
+	window = webview.create_window(
+		"Spotify Login", 
+		auth_url,
+		x=x, y=y, width=w, height=h, 
+		on_top=True, 
+		js_api=Api())
 	
 	assert(window != None)
-	if getattr(sys, 'frozen', False):
-		webview.start(debug=False)
-	else:
-		webview.start(debug=True)
+	webview.start(debug=is_debug, private_mode=False)
 
 def run_overlay() -> None:
 	print(f"Starting overlay at path \"{exe_path}\"")
-
-	if getattr(sys, 'frozen', False):
-		subprocess.Popen(
-			exe_path + " " + access_token + " " + refresh_token, 
-			creationflags=subprocess.CREATE_NO_WINDOW
+	token_file = "\"" + tokens_dir + "\\token.txt\""
+	if is_debug:
+		subprocess.run(
+			exe_path + " " + access_token + " " + refresh_token + " " + token_file
 		)
 	else:
-		subprocess.run(
-			exe_path + " " + access_token + " " + refresh_token
+		subprocess.Popen(
+			exe_path + " " + access_token + " " + refresh_token + " " + token_file, 
+			creationflags=subprocess.CREATE_NO_WINDOW
 		)
 
 #try fetching access token using refresh token or perform auth if necessary
 def get_access_token() -> None:
 	global access_token, refresh_token
 	token_url = "https://accounts.spotify.com/api/token"
-	response = requests.post(
-		token_url,
-		data={
-			"client_id": CLIENT_ID,
-			"grant_type": "refresh_token",
-			"refresh_token": refresh_token
-		}
-	)
+	try:
+		response = requests.post(
+			token_url,
+			data={
+				"client_id": CLIENT_ID,
+				"grant_type": "refresh_token",
+				"refresh_token": refresh_token
+			}
+		)
+	#show error in popup window
+	except Exception as e:
+		ctypes.windll.user32.MessageBoxW(0, f"{e}", "Error while refreshing token", 1)
+		return
 
 	if response.status_code != 200:
 		print(response.text)

@@ -9,16 +9,17 @@
 
 #pragma comment (lib, "dwmapi.lib")
 
-Overlay::Overlay(std::string at, std::string rt)
+Overlay::Overlay(std::string at, std::string rt, std::string path)
 	:
     defaultCursor_(sf::Cursor::Type::Arrow),
     resizeCursor_(sf::Cursor::Type::SizeTopRight),
 	accessToken_(at),
-	refreshToken_(rt)
+	refreshToken_(rt),
+    tokenFilePath_(path)
 {
-    float width = sf::VideoMode::getDesktopMode().size.x / 3.8f;
-	wSize_ = sf::Vector2i(int(width), int(width * .6f));
-    wSize_.x = std::max(wSize_.x, 350), wSize_.y = std::max(wSize_.y, 200);
+    float width = sf::VideoMode::getDesktopMode().size.x * 4 / 17.f;
+	wSize_ = sf::Vector2i(int(width), int((width * minWSize_.y) / minWSize_.x));
+    wSize_.x = std::max(wSize_.x, minWSize_.x), wSize_.y = std::max(wSize_.y, minWSize_.y);
 
     titleBar_ = sf::FloatRect({ 11, 11 }, { wSize_.x - float(10 + 10 + 24), 25 });
     background_ = sf::FloatRect({ 0, 0 }, sf::Vector2f(wSize_));
@@ -26,7 +27,7 @@ Overlay::Overlay(std::string at, std::string rt)
     success = resizeTexture_.loadFromFile("resources/resize.png");
 
 	closeBut_.loadTexture("resources/close.png");
-    closeBut_.setColors(sf::Color::White, shadowWhite_, sf::Color(190, 30, 30));
+    closeBut_.setColors(sf::Color::White, shadowWhite_, sf::Color(240, 90, 90));
     closeBut_.sprite->setPosition({ wSize_.x - 26.f, 5.f });
 
     success = lockCloseTexture_.loadFromFile("resources/lock_close.png");
@@ -149,8 +150,8 @@ bool Overlay::handleEvent(std::optional<sf::Event> e)
         if (moveStartMousePos_ != sf::Vector2i(-1, -1))
             w_.setPosition(startWinPos_ - moveStartMousePos_ + sf::Mouse::getPosition());
         else if (resizeStartMousePos_ != sf::Vector2i(-1, -1)) {
-            int x = std::max(startWinSize_.x + resizeStartMousePos_.x - sf::Mouse::getPosition().x, 350);
-            int y = std::max(startWinSize_.y - resizeStartMousePos_.y + sf::Mouse::getPosition().y, 200);
+            int x = std::max(startWinSize_.x + resizeStartMousePos_.x - sf::Mouse::getPosition().x, minWSize_.x);
+            int y = std::max(startWinSize_.y - resizeStartMousePos_.y + sf::Mouse::getPosition().y, minWSize_.y);
             
             wSize_ = sf::Vector2i(x, y);
             titleBar_ = sf::FloatRect({ 11, 11 }, { wSize_.x - float(10 + 10 + 24), 25 });
@@ -660,7 +661,7 @@ void Overlay::handleSongChange()
                 accessToken_ = json["access_token"];
                 refreshToken_ = json["refresh_token"];
 
-				std::fstream tokenFile("token.txt", std::ios::out);
+				std::fstream tokenFile(tokenFilePath_, std::ios::out);
                 if (tokenFile.is_open())
                     tokenFile << refreshToken_ << "\n";
 				tokenFile.close();
@@ -824,7 +825,7 @@ void Overlay::scrollLyrics()
 		while (i < currentLyrics_.size() - 1 && currentLyrics_[size_t(i + 1)].second < int(progress_ + surplus))
 			i++;
 
-        if (i != currentLine_) {
+        if (i != currentLine_ && i != (currentLine_ - 1)) {
 			currentLine_ = i;
 			if (!isContracted_)
 			    drawOverlay();

@@ -70,7 +70,7 @@ size_t CurlWrapper::writeCallback(void* contents, size_t size, size_t nmemb, voi
     return size * nmemb;
 }
 
-nlohmann::json Response::toJson()
+nlohmann::json Response::toJson() const
 {
-    return nlohmann::json::parse(body);
+    return Json::parse(body);
 }

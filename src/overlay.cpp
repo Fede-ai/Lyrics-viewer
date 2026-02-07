@@ -1,5 +1,4 @@
 #include "overlay.hpp"
-#include "curlwrapper.hpp"
 #include <thread>
 #include <fstream>
 #include <dwmapi.h>
@@ -84,9 +83,7 @@ void Overlay::run()
 
 	drawOverlay();
     //run the thread to check for song changes
-    std::thread songChangeThread(&Overlay::handleSongChange, this);
-    //run the thread to scroll the lyrics
-    std::thread scrollThread(&Overlay::scrollLyrics, this);
+    std::thread songChangeThread(&Overlay::watchForSongChanges, this);
     //run the thread to expand the window
     std::thread expandThread(&Overlay::expandWindow, this);
 
@@ -100,7 +97,6 @@ void Overlay::run()
 
     isRunning_ = false;
     songChangeThread.join();
-    scrollThread.join();
 	expandThread.join();
 }
 
@@ -581,49 +577,39 @@ void Overlay::drawLyrics()
     //w_.draw(dot);
 }
 
-void Overlay::handleSongChange()
-{   
-    //replace ' ' with '+'
-	const auto format = [](std::string s) {
-		for (size_t i = 0; i < s.size(); i++)
-			s[i] = (s[i] == ' ') ? '+' : s[i];
+void Overlay::watchForSongChanges()
+{
+    //return current time in milliseconds
+    auto getNow = []() {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        };
 
-		return s;
-    };
-
-    const auto toWstring = [](const std::string& s) {
-        std::wstring w = L"";
-        for (int i = 0; i < s.size(); i++) {
-            if (int(s[i]) > 0)
-                w += wchar_t(s[i]);
-            else {
-                unsigned char ubyte1 = (unsigned char)(s[i]);
-                unsigned char ubyte2 = (unsigned char)(s[i + 1]);
-
-                wchar_t codePoint = ((ubyte1 & 0x1F) << 6) | (ubyte2 & 0x3F);
-                w += codePoint;
-                //skip the next byte
-                i++;
-            }
-        }
-        return w;
-    };
-
-    const float sleepTime = 1.f;
     Request req = Request(Request::Methods::GET);
     req.url = "https://api.spotify.com/v1/me/player/currently-playing";
 
     while (isRunning_) {
+        size_t now = getNow();
+        if (now - timeLastScroll_ < 80) {
+            sf::sleep(sf::milliseconds(50));
+            continue;
+        }
+
+        timeLastScroll_ = now;
+        if (scrollLyrics(now - timeLastFetch_))
+            drawOverlay();
+
+        if (now - timeLastFetch_ < 1000)
+            continue;
+
         req.headers = { "Authorization: Bearer " + accessToken_ };
 		auto res = CurlWrapper::send(req);
+        timeLastFetch_ = getNow();
 
 		//error 301 - failed to retrieve 'currently-playing' data
 		if (res.error != "") {
             std::cerr << "error 301: failed to retrieve 'currently-playing' data\n";
-			sf::sleep(sf::seconds(sleepTime));
 			continue;
 		}
-
 		//error 302 - no song playing
 		if (res.code == 204) {
             std::cerr << "error 302: no song is currently playing\n";
@@ -631,17 +617,12 @@ void Overlay::handleSongChange()
             if (currentSong_ != L"No Song Playing") {
                 currentSong_ = L"No Song Playing";
                 currentLyrics_ = { { L"No Lyrics", 0 } };
-                duration_ = 0, progress_ = 0;
+                duration_ = 0, progress_ = 0, currentLine_ = 0;
                 currentArtists_.clear();
-                isPlaying_ = false;
-                drawOverlay();
-            }
-            else if (isPlaying_) {
-				isPlaying_ = false;
-				drawOverlay();
             }
 
-            sf::sleep(sf::seconds(sleepTime));
+            isPlaying_ = false;
+			drawOverlay();
 			continue;
 		}
         //refresh the expired token (potential error 303)
@@ -672,96 +653,185 @@ void Overlay::handleSongChange()
 			//error 303 - failed to refresh spotify token
             else {
                 std::cerr << "error 303: failed to refresh spotify token - " << rRes.code << "\n";
-                sf::sleep(sf::seconds(sleepTime));
                 continue;
             }
         }
         //error 304 - some other error
 		else if (res.code != 200) {
 			std::cerr << "error 304: failed to retrieve 'currently-playing' data - " << res.code << "\n";
-            sf::sleep(sf::seconds(sleepTime));
             continue;
 		}
+        
+        //process response, scroll and draw if new song is detected
+        //redraw for other reasons is handled by the 'processSpotifyResponse' function itself
+        if (processSpotifyResponse(res)) {
+            timeLastScroll_ = getNow();
+            scrollLyrics(timeLastScroll_ - timeLastFetch_);
 
-		auto json = res.toJson();
-        bool needRedraw = isPlaying_ != json["is_playing"];
-        isPlaying_ = json["is_playing"];
-        timeLastCheck_ = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-
-		//redraw if progress has changed
-        if (!json["progress_ms"].is_null()) {
-            needRedraw = (progress_ != json["progress_ms"] && !isContracted_) || needRedraw;
-            progress_ = json["progress_ms"];
+            drawOverlay();
         }
-        //redraw if volume has changed
-		if (!json["device"]["volume_percent"].is_null()) {
-			int newVolume = json["device"]["volume_percent"];
-			needRedraw = (volumePercent_ != newVolume && !isContracted_) || needRedraw;
-			volumePercent_ = newVolume;
-		}
-        //set default volume to 0
-        else {
-			needRedraw = (volumePercent_ != 0 && !isContracted_) || needRedraw;
-			volumePercent_ = 0;
+    }
+}
+bool Overlay::scrollLyrics(size_t surplusTime)
+{
+    //error 300 - the lyrics are empty
+    if (currentLyrics_.empty()) {
+        std::cerr << "error 300: the lyrics are empty\n";
+		return false;
+    }
+    //the lyrics are empty
+	if (currentLyrics_.size() == 1) {
+        if (currentLine_ != 0) {
+            currentLine_ = 0;
+            if (!isContracted_)
+                return true;
         }
+        return false;
+	}
 
-        std::string oldType = currentType_;
-        currentType_ = json["currently_playing_type"];
-		//a content that is not a 'track' started playing
-        if (currentType_ != oldType && currentType_ != "track") {
-			currentSong_ = std::wstring(currentType_.begin(), currentType_.end()) + L" - No Lyrics";
+    if (!isPlaying_)
+        surplusTime = lastSurplusTime_;
+    lastSurplusTime_ = surplusTime;
+
+	int i = 0;
+	while (i < currentLyrics_.size() - 1 && currentLyrics_[i + 1].second < int(progress_ + surplusTime))
+		i++;
+
+    if (i != currentLine_) {
+		currentLine_ = i;
+        if (!isContracted_)
+            return true;
+    }
+    return false;
+}
+bool Overlay::processSpotifyResponse(Response& res)
+{
+    auto urlEncode = [](const std::string& value) {
+        std::ostringstream escaped;
+        escaped.fill('0');
+        escaped << std::hex << std::uppercase;
+
+        for (unsigned char c : value) {
+            if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+                escaped << c;
+            else
+                escaped << '%' << std::setw(2) << int(c);
+        }
+        return escaped.str();
+        };
+
+    auto toWstring = [](const std::string& utf8) {
+        if (utf8.empty())
+            return std::wstring();
+
+        int size = MultiByteToWideChar(
+            CP_UTF8,
+            MB_ERR_INVALID_CHARS,
+            utf8.data(),
+            (int)utf8.size(),
+            nullptr,
+            0
+        );
+
+        std::wstring result(size, 0);
+        MultiByteToWideChar(
+            CP_UTF8,
+            MB_ERR_INVALID_CHARS,
+            utf8.data(),
+            (int)utf8.size(),
+            result.data(),
+            size
+        );
+
+        return result;
+        };
+
+    Json json = res.toJson();
+    bool newIsPlaying = json["is_playing"];
+    bool needRedraw = isPlaying_ != newIsPlaying;
+    isPlaying_ = newIsPlaying;
+
+    //redraw if progress has changed
+    if (!json["progress_ms"].is_null()) {
+        needRedraw = (progress_ != json["progress_ms"] && !isContracted_) || needRedraw;
+        progress_ = json["progress_ms"];
+    }
+    //redraw if volume has changed
+    if (!json["device"]["volume_percent"].is_null()) {
+        int newVolume = json["device"]["volume_percent"];
+        needRedraw = (volumePercent_ != newVolume && !isContracted_) || needRedraw;
+        volumePercent_ = newVolume;
+    }
+    //set default volume to 0
+    else {
+        needRedraw = (volumePercent_ != 0 && !isContracted_) || needRedraw;
+        volumePercent_ = 0;
+    }
+
+    std::string oldType = currentType_;
+    currentType_ = json["currently_playing_type"];
+    //a content that is not a 'track' is playing, return
+    if (currentType_ != "track") {
+        if (currentType_ != oldType) {
+            currentSong_ = std::wstring(currentType_.begin(), currentType_.end()) + L" - No Lyrics";
             currentLyrics_ = { { L"No Lyrics Available For This Type Of Content", 0 } };
             currentArtists_ = { }, duration_ = 0, progress_ = 0, currentLine_ = 0;
 
             drawOverlay();
-            sf::sleep(sf::seconds(sleepTime));
-            continue;
+            return false;
         }
-        
-		//skip if the current type is not 'track' or if the item is null
-        if (currentType_ != "track" || json["item"].is_null()) {
-            sf::sleep(sf::seconds(sleepTime));
-            continue;
-        }
+        return false;
+    }
 
-        std::wstring name = toWstring(json["item"]["name"]);
-        //new song detected
-        if (currentSong_ != name) {
-            currentSong_ = name;
-            duration_ = json["item"]["duration_ms"];
-            currentArtists_ = { }, currentLine_ = 0;
-            for (const auto& a : json["item"]["artists"])
-                currentArtists_.push_back(toWstring(a["name"]));
-            
-            currentLyrics_ = { { L"Fetching Lyrics...", 0 } };
-            drawOverlay();
+    //skip if the item is null, return
+    if (json["item"].is_null())
+        return false;
 
-            //request lyrics from LRCLIB
-			Request lReq = Request(Request::Methods::GET);
-            lReq.url = "https://lrclib.net/api/get?track_name=" + format(json["item"]["name"]) +
-                "&artist_name=" + format(json["item"]["artists"][0]["name"]) + 
-                "&duration=" + std::to_string(int(json["item"]["duration_ms"] / 1000));
-            std::cout << lReq.url << "\n";
-			auto lRes = CurlWrapper::send(lReq);
-
-			//no lyrics found
-            if (lRes.code != 200 || lRes.toJson()["syncedLyrics"].is_null())
-                currentLyrics_ = { { L"No Lyrics Available", 0 } };
-			//process raw lyrics
-            else
-                extractLyrics(toWstring(lRes.toJson()["syncedLyrics"]));
-        }
-
+    std::wstring newName = toWstring(json["item"]["name"]);
+    int newDuration = json["item"]["duration_ms"];
+    //old song is still playing detected
+    if (currentSong_ == newName && duration_ == newDuration) {
         if (needRedraw)
             drawOverlay();
-
-        //sleep before checking again
-        sf::sleep(sf::seconds(sleepTime));
+        return false;
     }
+
+    //new song detected
+    currentSong_ = newName, duration_ = newDuration;
+    currentArtists_ = { }, currentLine_ = 0;
+    for (const auto& a : json["item"]["artists"])
+        currentArtists_.push_back(toWstring(a["name"]));
+
+    currentLyrics_ = { { L"Fetching Lyrics...", 0 } };
+    drawOverlay();
+
+    //request lyrics from LRCLIB
+    Request lReq = Request(Request::Methods::GET);
+    lReq.url =
+        "https://lrclib.net/api/get"
+        "?track_name=" + urlEncode(json["item"]["name"].get<std::string>()) +
+        "&artist_name=" + urlEncode(json["item"]["artists"][0]["name"].get<std::string>()) +
+        "&album_name=" + urlEncode(json["item"]["album"]["name"].get<std::string>()) +
+        "&duration=" + std::to_string(int(json["item"]["duration_ms"] / 1000));
+    std::cout << lReq.url << "\n";
+
+    auto lRes = CurlWrapper::send(lReq);
+    Json lyricsJson = lRes.toJson();
+
+    //no lyrics found
+    if (lRes.code != 200 || lyricsJson["syncedLyrics"].is_null())
+        currentLyrics_ = { { L"No Lyrics Available", 0 } };
+    //process raw lyrics
+    else {
+        std::wstring lyricsStr = toWstring(lyricsJson["syncedLyrics"]);
+        currentLyrics_ = extractLyrics(lyricsStr);
+    }
+
+    return true;
 }
-void Overlay::extractLyrics(std::wstring w)
+std::vector<Line> Overlay::extractLyrics(const std::wstring& w) const
 {
-    currentLyrics_ = { { L"", 0 } };
+    std::vector<Line> newLyrics = { { L"", 0 } };
 
     std::wstringstream stream(w);
     std::wstring line;
@@ -786,54 +856,20 @@ void Overlay::extractLyrics(std::wstring w)
             if (line[0] == ' ')
                 line = line.substr(1);
 
-            auto& last = currentLyrics_[currentLyrics_.size() - 1];
+            auto& last = newLyrics[newLyrics.size() - 1];
             if (last.first == L"" && time - last.second < 1'500)
                 last = { line, std::max(0, time - 50) };
             else
-                currentLyrics_.push_back({ line, std::max(0, time - 50) });
+                newLyrics.push_back({ line, std::max(0, time - 50) });
         }
 		catch (std::exception& e) {
 			std::cerr << "error parsing lyrics line: " << std::string(e.what()) << "\n";
         }
     }
+
+    return newLyrics;
 }
 
-void Overlay::scrollLyrics()
-{
-	while (isRunning_) {
-        //error 300 - the lyrics are empty
-        if (currentLyrics_.empty()) {
-            std::cerr << "error 300: the lyrics are empty\n";
-			sf::sleep(sf::seconds(1));
-			continue;
-        }
-        //the lyrics are empty
-		if (currentLyrics_.size() == 1) {
-            if (currentLine_ != 0) {
-                currentLine_ = 0;
-                if (!isContracted_)
-                    drawOverlay();
-            }
-			sf::sleep(sf::seconds(1));
-			continue;
-		}
-
-        size_t surplus = 0;
-        if (isPlaying_)
-            surplus = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - timeLastCheck_;
-		int i = 0;
-		while (i < currentLyrics_.size() - 1 && currentLyrics_[size_t(i + 1)].second < int(progress_ + surplus))
-			i++;
-
-        if (i != currentLine_ && i != (currentLine_ - 1)) {
-			currentLine_ = i;
-			if (!isContracted_)
-			    drawOverlay();
-        }
-
-		sf::sleep(sf::milliseconds(100));
-    }
-}
 void Overlay::expandWindow()
 {
     while (isRunning_) {

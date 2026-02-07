@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <mutex>
 #include "button.hpp"
+#include "curlwrapper.hpp"
 
 typedef std::pair<std::wstring, int> Line;
 
@@ -16,10 +17,13 @@ private:
 	void drawLyrics();
 
 	//on its own thread
-	void handleSongChange();
-	void extractLyrics(std::wstring w);
-	//on its own thread
-	void scrollLyrics();
+	void watchForSongChanges();
+	//returns whether a redraw is needed
+	bool scrollLyrics(size_t surplusTime);
+	//returns whether a new song was detected
+	bool processSpotifyResponse(Response& res);
+	std::vector<Line> extractLyrics(const std::wstring& w) const;
+
 	//on its own thread
 	void expandWindow();
 
@@ -47,8 +51,10 @@ private:
 	int progress_ = 0; //in ms
 	int duration_ = 0; //in ms
 	bool isPlaying_ = false;
-	size_t timeLastCheck_ = 0;
+	size_t timeLastFetch_ = 0;
+	size_t timeLastScroll_ = 0;
 	size_t drawCounter_ = 0;
+	size_t lastSurplusTime_ = 0;
 
 	sf::Cursor defaultCursor_;
 	sf::Cursor resizeCursor_;

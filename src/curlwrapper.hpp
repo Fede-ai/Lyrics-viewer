@@ -3,6 +3,8 @@
 #include <curl/curl.h>
 #include <iostream>
 
+typedef nlohmann::json_abi_v3_11_3::json Json;
+
 //if (error == "") than the message was sent successfully
 struct Response {	
 	Response() = default;
@@ -11,7 +13,7 @@ struct Response {
 		error(inError)
 	{}
 
-	nlohmann::json toJson();
+	Json toJson() const;
 
 	//if (error == "") than the message was sent successfully
 	std::string error = "";
